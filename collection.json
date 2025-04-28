@@ -46,16 +46,8 @@
         "request": {
           "method": "POST",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            },
-            {
-              "key": "Content-Type",
-              "value": "application/json",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+            { "key": "Content-Type", "value": "application/json", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/quiz",
@@ -75,11 +67,7 @@
         "request": {
           "method": "GET",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/quiz",
@@ -95,11 +83,7 @@
         "request": {
           "method": "GET",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/quiz/{{quizId}}",
@@ -115,16 +99,8 @@
         "request": {
           "method": "POST",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            },
-            {
-              "key": "Content-Type",
-              "value": "application/json",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+            { "key": "Content-Type", "value": "application/json", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/lobby",
@@ -135,7 +111,7 @@
           },
           "body": {
             "mode": "raw",
-            "raw": "{\n    \"quizId\": \"{{quizId}}\",\n    \"baseReward\": 300\n}"
+            "raw": "{\n    \"quizId\": \"{{quizId}}\",\n    \"baseReward\": 300,\n    \"withReward\": true,\n    \"rewardBalance\": 5\n}"
           }
         }
       },
@@ -144,16 +120,8 @@
         "request": {
           "method": "POST",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            },
-            {
-              "key": "Content-Type",
-              "value": "application/json",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+            { "key": "Content-Type", "value": "application/json", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/join",
@@ -164,7 +132,7 @@
           },
           "body": {
             "mode": "raw",
-            "raw": "{\n    \"nickname\": \"PlayerOne\"\n}"
+            "raw": "{\n    \"nickname\": \"PlayerOne\",\n    \"walletAddress\": \"EQBXsW9Vas9k3YZ...\"\n}"
           }
         }
       },
@@ -173,11 +141,7 @@
         "request": {
           "method": "GET",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}",
@@ -193,11 +157,7 @@
         "request": {
           "method": "POST",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/start",
@@ -213,16 +173,8 @@
         "request": {
           "method": "POST",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            },
-            {
-              "key": "Content-Type",
-              "value": "application/json",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+            { "key": "Content-Type", "value": "application/json", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/answer",
@@ -242,11 +194,7 @@
         "request": {
           "method": "GET",
           "header": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}",
-              "type": "text"
-            }
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
           ],
           "url": {
             "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/results",
@@ -254,6 +202,22 @@
             "host": ["localhost"],
             "port": "3000",
             "path": ["api", "lobby", "{{lobbyCode}}", "results"]
+          }
+        }
+      },
+      {
+        "name": "Distribute Rewards",
+        "request": {
+          "method": "POST",
+          "header": [
+            { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/distribute-rewards",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "lobby", "{{lobbyCode}}", "distribute-rewards"]
           }
         }
       }

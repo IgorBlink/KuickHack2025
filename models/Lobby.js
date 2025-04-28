@@ -13,6 +13,10 @@ const PlayerSchema = new Schema({
         type: Number,
         default: 0
     },
+    walletAddress: { 
+        type: String, 
+        required: true 
+    },
     streak: {
         type: Number,
         default: 0
@@ -20,34 +24,45 @@ const PlayerSchema = new Schema({
 }, { _id: false });
 
 const LobbySchema = new Schema({
-    code: {
-        type: String,
-        required: true,
-        unique: true
+    code: { 
+        type: String, 
+        required: true, 
+        unique: true 
     },
-    quiz: {
-        type: Schema.Types.ObjectId,
-        ref: 'Quiz',
-        required: true
+    quiz: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'Quiz', 
+        required: true 
     },
-    host: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+    host: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'User', 
+        required: true 
     },
     players: [PlayerSchema],
-    started: {
-        type: Boolean,
+    started: { 
+        type: Boolean, 
         default: false
     },
-    baseReward: { // Базовая награда за правильный ответ
-        type: Number,
+    baseReward: { 
+        type: Number, 
         required: true
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+
+    withReward: { // ➡️ будет ли TON награда
+        type: Boolean, 
+        default: false 
+    },   
+    rewardBalance: { // ➡️ сколько TON в банке
+        type: Number, 
+        default: 0 
+    },     
+    paid: { // ➡️ Оплачено или нет
+        type: Boolean, 
+        default: false 
+    },         
+
+    createdAt: { type: Date, default: Date.now }
 });
 
 module.exports = model('Lobby', LobbySchema);
