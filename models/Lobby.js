@@ -12,6 +12,10 @@ const PlayerSchema = new Schema({
     currentQuestion: {
         type: Number,
         default: 0
+    },
+    streak: {
+        type: Number,
+        default: 0
     }
 }, { _id: false });
 
@@ -35,6 +39,10 @@ const LobbySchema = new Schema({
     started: {
         type: Boolean,
         default: false
+    },
+    baseReward: { // Базовая награда за правильный ответ
+        type: Number,
+        required: true
     },
     createdAt: {
         type: Date,

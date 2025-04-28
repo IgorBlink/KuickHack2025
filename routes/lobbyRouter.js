@@ -4,13 +4,13 @@ const Lobby = require('../models/Lobby');
 const Quiz = require('../models/Quiz');
 const crypto = require('crypto');
 
-// Создание нового лобби
+
 router.post('/', async (req, res) => {
     try {
-        const { quizId } = req.body;
+        const { quizId, baseReward } = req.body;
 
-        if (!quizId) {
-            return res.status(400).json({ success: false, message: 'Quiz ID is required' });
+        if (!quizId || !baseReward) {
+            return res.status(400).json({ success: false, message: 'Quiz ID and baseReward are required' });
         }
 
         const quiz = await Quiz.findById(quizId);
@@ -18,14 +18,15 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Quiz not found' });
         }
 
-        const code = crypto.randomBytes(3).toString('hex'); // 6 символов
+        const code = crypto.randomBytes(3).toString('hex');
 
         const newLobby = new Lobby({
             code,
             quiz: quiz._id,
             host: req.user.userId,
             players: [],
-            started: false
+            started: false,
+            baseReward
         });
 
         await newLobby.save();
@@ -135,7 +136,6 @@ router.post('/:code/answer', async (req, res) => {
         }
 
         const question = lobby.quiz.questions[player.currentQuestion];
-
         if (!question) {
             return res.status(400).json({ success: false, message: 'No more questions' });
         }
@@ -150,7 +150,13 @@ router.post('/:code/answer', async (req, res) => {
         const isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(playerAnswers);
 
         if (isCorrect) {
-            player.score += 1;
+            player.streak += 1;
+
+            // Теперь используем базовую награду из лобби
+            const reward = Math.floor(lobby.baseReward * Math.pow(1.1, player.streak - 1));
+            player.score += reward;
+        } else {
+            player.streak = 0; // Сброс стрика
         }
 
         player.currentQuestion += 1;
@@ -163,8 +169,35 @@ router.post('/:code/answer', async (req, res) => {
             success: true,
             correct: isCorrect,
             score: player.score,
+            streak: player.streak,
             hasMoreQuestions
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Получение результатов квиза
+router.get('/:code/results', async (req, res) => {
+    try {
+        const { code } = req.params;
+
+        const lobby = await Lobby.findOne({ code });
+
+        if (!lobby) {
+            return res.status(404).json({ success: false, message: 'Lobby not found' });
+        }
+
+        const results = lobby.players
+            .map(player => ({
+                nickname: player.nickname,
+                score: player.score,
+                streak: player.streak
+            }))
+            .sort((a, b) => b.score - a.score); // Сортируем по убыванию очков
+
+        res.status(200).json({ success: true, results });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: error.message });

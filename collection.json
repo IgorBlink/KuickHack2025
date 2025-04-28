@@ -135,7 +135,7 @@
           },
           "body": {
             "mode": "raw",
-            "raw": "{\n    \"quizId\": \"{{quizId}}\"\n}"
+            "raw": "{\n    \"quizId\": \"{{quizId}}\",\n    \"baseReward\": 300\n}"
           }
         }
       },
@@ -234,6 +234,26 @@
           "body": {
             "mode": "raw",
             "raw": "{\n    \"nickname\": \"PlayerOne\",\n    \"selectedAnswers\": [1]\n}"
+          }
+        }
+      },
+      {
+        "name": "Get Lobby Results",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/results",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "lobby", "{{lobbyCode}}", "results"]
           }
         }
       }
