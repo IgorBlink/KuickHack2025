@@ -1,0 +1,390 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+.auth {
+  font-family: 'Poppins', sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Звездный фон */
+.auth__stars, 
+.auth__stars-2, 
+.auth__stars-3 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background-image: 
+    radial-gradient(1px 1px at 25px 5px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1px 1px at 50px 25px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1px 1px at 125px 20px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1.5px 1.5px at 50px 75px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(2px 2px at 15px 125px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(2.5px 2.5px at 110px 80px, white, rgba(255, 255, 255, 0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.3;
+  animation: twinkle 5s ease-in-out infinite;
+}
+
+.auth__stars-2 {
+  background-image: 
+    radial-gradient(1px 1px at 75px 45px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1px 1px at 20px 65px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1px 1px at 90px 40px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1.5px 1.5px at 15px 100px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(2px 2px at 85px 115px, white, rgba(255, 255, 255, 0));
+  background-size: 250px 250px;
+  animation: twinkle 7s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.auth__stars-3 {
+  background-image: 
+    radial-gradient(1px 1px at 95px 5px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1px 1px at 60px 35px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1px 1px at 10px 60px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(1.5px 1.5px at 30px 95px, white, rgba(255, 255, 255, 0)),
+    radial-gradient(2px 2px at 65px 5px, white, rgba(255, 255, 255, 0));
+  background-size: 300px 300px;
+  animation: twinkle 9s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.5; }
+}
+
+/* Содержимое */
+.auth__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  padding: 2rem 1.5rem;
+}
+
+.auth__logo {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.auth__logo img {
+  width: auto;
+  height: 70px;
+  filter: drop-shadow(0 0 10px rgba(131, 56, 236, 0.5));
+  transition: all 0.3s ease;
+}
+
+.auth__logo img:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 15px rgba(131, 56, 236, 0.8));
+}
+
+/* Форма */
+.auth__form-container {
+  width: 100%;
+  max-width: 450px;
+  background: rgba(60, 19, 87, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-cosmic);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.auth__tabs {
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.auth__tab {
+  flex: 1;
+  padding: 1.2rem;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.auth__tab:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.auth__tab--active {
+  color: var(--color-text);
+  background: rgba(131, 56, 236, 0.1);
+}
+
+.auth__tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--gradient-cosmic);
+}
+
+.auth__form {
+  padding: 2rem;
+}
+
+.auth__title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  background: var(--gradient-cosmic);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.auth__error {
+  background: rgba(255, 0, 0, 0.1);
+  border-left: 4px solid #ff3e3e;
+  padding: 0.8rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0 4px 4px 0;
+  color: #ff3e3e;
+  font-size: 0.9rem;
+}
+
+.auth__success {
+  background: rgba(0, 200, 83, 0.1);
+  border-left: 4px solid #00c853;
+  padding: 0.8rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0 4px 4px 0;
+  color: #00c853;
+  font-size: 0.9rem;
+}
+
+.auth__field {
+  margin-bottom: 1.5rem;
+}
+
+.auth__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.auth__input {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+  transition: all 0.3s ease;
+}
+
+.auth__input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.auth__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(131, 56, 236, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.auth__forgot {
+  text-align: right;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.auth__link {
+  color: var(--color-primary);
+  text-decoration: none;
+  border: none;
+  background: none;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.auth__link:hover {
+  color: var(--color-secondary);
+}
+
+.auth__link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--gradient-cosmic);
+  transition: width 0.3s ease;
+}
+
+.auth__link:hover::after {
+  width: 100%;
+}
+
+.auth__button {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: var(--gradient-cosmic);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-cosmic);
+}
+
+.auth__button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(131, 56, 236, 0.6);
+}
+
+.auth__button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(131, 56, 236, 0.4);
+}
+
+.auth__button--loading {
+  position: relative;
+  color: transparent;
+}
+
+.auth__button--loading::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  margin: -10px 0 0 -10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.auth__button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
+}
+
+.auth__footer {
+  padding: 1.5rem 2rem;
+  text-align: center;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.auth__text-button {
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.auth__text-button:hover {
+  color: var(--color-secondary);
+  text-decoration: underline;
+}
+
+.auth__additional-links {
+  margin-top: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
+.auth__separator {
+  margin: 0 0.8rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Адаптивный дизайн */
+@media (max-width: 480px) {
+  .auth__form {
+    padding: 1.5rem;
+  }
+  
+  .auth__footer {
+    padding: 1.2rem 1.5rem;
+  }
+  
+  .auth__title {
+    font-size: 1.5rem;
+  }
+  
+  .auth__form-container {
+    border-radius: 0.8rem;
+  }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 350px) {
+  .auth__tab {
+    padding: 1rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .auth__additional-links {
+    font-size: 0.85rem;
+  }
+  
+  .auth__separator {
+    margin: 0 0.4rem;
+  }
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth__form-container {
+  animation: fadeIn 0.5s ease forwards;
+} 
