@@ -19,7 +19,12 @@ router.post('/register', async (req, res) => {
         const newUser = new User({ username, password: hashedPassword });
         await newUser.save();
 
-        const token = jwt.generateToken({ userId: newUser._id });
+        const payload = {
+            id: newUser._id,
+            username: newUser.username
+        }
+
+        const token = await jwt.generateToken(payload);
 
         res.status(201).json({ success: true, token });
     } catch (error) {
@@ -43,7 +48,7 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
 
-        const token = jwt.generateToken({ userId: user._id });
+        const token = await jwt.generateToken({ userId: user._id });
 
         res.json({ success: true, token });
     } catch (error) {

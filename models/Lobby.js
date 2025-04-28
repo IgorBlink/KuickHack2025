@@ -4,6 +4,14 @@ const PlayerSchema = new Schema({
     nickname: {
         type: String,
         required: true
+    },
+    score: {
+        type: Number,
+        default: 0
+    },
+    currentQuestion: {
+        type: Number,
+        default: 0
     }
 }, { _id: false });
 
@@ -23,7 +31,11 @@ const LobbySchema = new Schema({
         ref: 'User',
         required: true
     },
-    players: [PlayerSchema], // Никнеймы игроков (без авторизации)
+    players: [PlayerSchema],
+    started: {
+        type: Boolean,
+        default: false
+    },
     createdAt: {
         type: Date,
         default: Date.now
