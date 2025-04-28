@@ -5,19 +5,16 @@ const Quiz = require('../models/Quiz');
 
 const router = express.Router();
 
-// Фиксированная комиссия сервиса (%)
+// Комиссия сервиса (%)
 const COMMISSION_PERCENT = 5;
 
+// Создание лобби
 router.post('/', async (req, res) => {
     try {
-        const { quizId, baseReward, withReward, rewardBalance } = req.body;
+        const { quizId, baseReward, withReward } = req.body;
 
         if (!quizId || !baseReward || typeof withReward !== 'boolean') {
             return res.status(400).json({ success: false, message: 'quizId, baseReward and withReward are required' });
-        }
-
-        if (withReward && (!rewardBalance || rewardBalance <= 0)) {
-            return res.status(400).json({ success: false, message: 'Reward balance is required if withReward is true' });
         }
 
         const quiz = await Quiz.findById(quizId);
@@ -35,8 +32,8 @@ router.post('/', async (req, res) => {
             started: false,
             baseReward,
             withReward,
-            rewardBalance: withReward ? rewardBalance : 0,
-            paid: !withReward,
+            rewardBalance: 0,    // ➡️ Ставим 0
+            paid: !withReward    // ➡️ Если без награды — сразу paid: true
         });
 
         await newLobby.save();
@@ -48,6 +45,7 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Присоединение в лобби
 router.post('/:code/join', async (req, res) => {
     try {
         const { code } = req.params;
@@ -84,6 +82,7 @@ router.post('/:code/join', async (req, res) => {
     }
 });
 
+// Получение информации о лобби
 router.get('/:code', async (req, res) => {
     try {
         const { code } = req.params;
@@ -116,6 +115,7 @@ router.get('/:code', async (req, res) => {
     }
 });
 
+// Старт квиза
 router.post('/:code/start', async (req, res) => {
     try {
         const { code } = req.params;
@@ -144,6 +144,7 @@ router.post('/:code/start', async (req, res) => {
     }
 });
 
+// Ответ на вопрос
 router.post('/:code/answer', async (req, res) => {
     try {
         const { code } = req.params;
@@ -208,6 +209,7 @@ router.post('/:code/answer', async (req, res) => {
     }
 });
 
+// Получить результаты лобби
 router.get('/:code/results', async (req, res) => {
     try {
         const { code } = req.params;
@@ -233,6 +235,7 @@ router.get('/:code/results', async (req, res) => {
     }
 });
 
+// Распределение наград
 router.post('/:code/distribute-rewards', async (req, res) => {
     try {
         const { code } = req.params;
@@ -261,7 +264,7 @@ router.post('/:code/distribute-rewards', async (req, res) => {
                 score: player.score
             }))
             .sort((a, b) => b.score - a.score)
-            .slice(0, 3); // только топ-3 игрока
+            .slice(0, 3);
 
         const rewardDistribution = [];
 
@@ -283,7 +286,6 @@ router.post('/:code/distribute-rewards', async (req, res) => {
             reward: availableReward * 0.1
         });
 
-        // 👉🏻 Тут будет реальная отправка TON в будущем
         console.log('Reward distribution:', rewardDistribution);
 
         lobby.rewardDistributed = true;
