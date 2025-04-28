@@ -66,7 +66,7 @@
         "name": "Get All Quizzes",
         "request": {
           "method": "GET",
-          "header": [{"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}],
+          "header": [],
           "url": {
             "raw": "http://localhost:6000/api/quiz",
             "protocol": "http",
@@ -80,7 +80,7 @@
         "name": "Get Quiz By ID",
         "request": {
           "method": "GET",
-          "header": [{"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}],
+          "header": [],
           "url": {
             "raw": "http://localhost:6000/api/quiz/{{quizId}}",
             "protocol": "http",
@@ -116,7 +116,6 @@
         "request": {
           "method": "POST",
           "header": [
-            {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"},
             {"key": "Content-Type", "value": "application/json", "type": "text"}
           ],
           "url": {
@@ -136,7 +135,7 @@
         "name": "Get Lobby Info",
         "request": {
           "method": "GET",
-          "header": [{"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}],
+          "header": [],
           "url": {
             "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}",
             "protocol": "http",
@@ -150,7 +149,9 @@
         "name": "Start Lobby",
         "request": {
           "method": "POST",
-          "header": [{"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}],
+          "header": [
+            {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}
+          ],
           "url": {
             "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/start",
             "protocol": "http",
@@ -165,7 +166,6 @@
         "request": {
           "method": "POST",
           "header": [
-            {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"},
             {"key": "Content-Type", "value": "application/json", "type": "text"}
           ],
           "url": {
@@ -185,7 +185,7 @@
         "name": "Get Lobby Results",
         "request": {
           "method": "GET",
-          "header": [{"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}],
+          "header": [],
           "url": {
             "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/results",
             "protocol": "http",
@@ -199,7 +199,9 @@
         "name": "Distribute Rewards",
         "request": {
           "method": "POST",
-          "header": [{"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}],
+          "header": [
+            {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}
+          ],
           "url": {
             "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/distribute-rewards",
             "protocol": "http",

@@ -3,13 +3,15 @@ const crypto = require('crypto');
 const Lobby = require('../models/Lobby');
 const Quiz = require('../models/Quiz');
 
+const authMiddleware = require('../middleware/auth');
+
 const router = express.Router();
 
 // Комиссия сервиса (%)
 const COMMISSION_PERCENT = 5;
 
 // Создание лобби
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
     try {
         const { quizId, baseReward, withReward } = req.body;
 
@@ -116,7 +118,7 @@ router.get('/:code', async (req, res) => {
 });
 
 // Старт квиза
-router.post('/:code/start', async (req, res) => {
+router.post('/:code/start', authMiddleware, async (req, res) => {
     try {
         const { code } = req.params;
 
@@ -236,7 +238,7 @@ router.get('/:code/results', async (req, res) => {
 });
 
 // Распределение наград
-router.post('/:code/distribute-rewards', async (req, res) => {
+router.post('/:code/distribute-rewards', authMiddleware, async (req, res) => {
     try {
         const { code } = req.params;
 

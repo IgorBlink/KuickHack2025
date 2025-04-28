@@ -8,7 +8,7 @@ const quizRouter = require('./quizRouter');
 const lobbyRouter = require('./lobbyRouter');
 
 router.use('/auth', authRouter);
+router.use('/lobby', lobbyRouter);
 router.use('/quiz', authMiddleware, quizRouter);
-router.use('/lobby', authMiddleware, lobbyRouter);
 
 module.exports = router;
