@@ -2,7 +2,6 @@ const express = require('express');
 const crypto = require('crypto');
 const Lobby = require('../models/Lobby');
 const Quiz = require('../models/Quiz');
-
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -10,298 +9,108 @@ const router = express.Router();
 // Комиссия сервиса (%)
 const COMMISSION_PERCENT = 5;
 
-// Создание лобби
+// ➡️ Создать лобби
 router.post('/', authMiddleware, async (req, res) => {
-    try {
-        const { quizId, baseReward, withReward } = req.body;
+  try {
+    const { quizId, baseReward, withReward } = req.body;
 
-        if (!quizId || !baseReward || typeof withReward !== 'boolean') {
-            return res.status(400).json({ success: false, message: 'quizId, baseReward and withReward are required' });
-        }
-
-        const quiz = await Quiz.findById(quizId);
-        if (!quiz) {
-            return res.status(404).json({ success: false, message: 'Quiz not found' });
-        }
-
-        const code = crypto.randomBytes(3).toString('hex');
-
-        const newLobby = new Lobby({
-            code,
-            quiz: quiz._id,
-            host: req.user.userId,
-            players: [],
-            started: false,
-            baseReward,
-            withReward,
-            rewardBalance: 0,    // ➡️ Ставим 0
-            paid: !withReward    // ➡️ Если без награды — сразу paid: true
-        });
-
-        await newLobby.save();
-
-        res.status(201).json({ success: true, code, lobbyId: newLobby._id });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+    if (!quizId || !baseReward || typeof withReward !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'quizId, baseReward and withReward are required' });
     }
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
+
+    const code = crypto.randomBytes(3).toString('hex');
+
+    const lobby = new Lobby({
+      code,
+      quiz: quiz._id,
+      host: req.user.id,
+      baseReward,
+      withReward,
+      rewardBalance: 0,
+      paid: !withReward
+    });
+
+    await lobby.save();
+
+    res.status(201).json({ success: true, code, lobbyId: lobby._id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
-// Присоединение в лобби
-router.post('/:code/join', async (req, res) => {
-    try {
-        const { code } = req.params;
-        const { nickname, walletAddress } = req.body;
-
-        if (!nickname || !walletAddress) {
-            return res.status(400).json({ success: false, message: 'Nickname and walletAddress are required' });
-        }
-
-        const lobby = await Lobby.findOne({ code });
-
-        if (!lobby) {
-            return res.status(404).json({ success: false, message: 'Lobby not found' });
-        }
-
-        if (lobby.players.find(p => p.nickname === nickname)) {
-            return res.status(400).json({ success: false, message: 'Nickname already taken in this lobby' });
-        }
-
-        lobby.players.push({
-            nickname,
-            walletAddress,
-            score: 0,
-            currentQuestion: 0,
-            streak: 0
-        });
-
-        await lobby.save();
-
-        res.status(200).json({ success: true, message: 'Joined lobby successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
-
-// Получение информации о лобби
+// ➡️ Получить инфу о лобби
 router.get('/:code', async (req, res) => {
-    try {
-        const { code } = req.params;
+  try {
+    const { code } = req.params;
+    const lobby = await Lobby.findOne({ code }).populate('quiz');
+    if (!lobby) return res.status(404).json({ success: false, message: 'Lobby not found' });
 
-        const lobby = await Lobby.findOne({ code }).populate('quiz');
-
-        if (!lobby) {
-            return res.status(404).json({ success: false, message: 'Lobby not found' });
-        }
-
-        res.status(200).json({
-            success: true,
-            lobby: {
-                code: lobby.code,
-                quiz: {
-                    title: lobby.quiz.title,
-                    description: lobby.quiz.description,
-                    questionsCount: lobby.quiz.questions.length
-                },
-                players: lobby.players.map(p => ({ nickname: p.nickname })),
-                withReward: lobby.withReward,
-                rewardBalance: lobby.rewardBalance,
-                paid: lobby.paid,
-                started: lobby.started
-            }
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.status(200).json({ success: true, lobby });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
-// Старт квиза
-router.post('/:code/start', authMiddleware, async (req, res) => {
-    try {
-        const { code } = req.params;
-
-        const lobby = await Lobby.findOne({ code });
-
-        if (!lobby) {
-            return res.status(404).json({ success: false, message: 'Lobby not found' });
-        }
-
-        if (lobby.started) {
-            return res.status(400).json({ success: false, message: 'Lobby already started' });
-        }
-
-        if (lobby.withReward && !lobby.paid) {
-            return res.status(400).json({ success: false, message: 'Reward payment is not completed' });
-        }
-
-        lobby.started = true;
-        await lobby.save();
-
-        res.status(200).json({ success: true, message: 'Quiz started' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
-
-// Ответ на вопрос
-router.post('/:code/answer', async (req, res) => {
-    try {
-        const { code } = req.params;
-        const { nickname, selectedAnswers } = req.body;
-
-        if (!nickname || !Array.isArray(selectedAnswers)) {
-            return res.status(400).json({ success: false, message: 'Nickname and selectedAnswers are required' });
-        }
-
-        const lobby = await Lobby.findOne({ code }).populate('quiz');
-
-        if (!lobby) {
-            return res.status(404).json({ success: false, message: 'Lobby not found' });
-        }
-
-        if (!lobby.started) {
-            return res.status(400).json({ success: false, message: 'Quiz has not started yet' });
-        }
-
-        const player = lobby.players.find(p => p.nickname === nickname);
-        if (!player) {
-            return res.status(404).json({ success: false, message: 'Player not found in this lobby' });
-        }
-
-        const question = lobby.quiz.questions[player.currentQuestion];
-        if (!question) {
-            return res.status(400).json({ success: false, message: 'No more questions' });
-        }
-
-        const correctAnswers = question.correctAnswers
-            .map((isCorrect, idx) => isCorrect ? idx : null)
-            .filter(idx => idx !== null)
-            .sort();
-
-        const playerAnswers = selectedAnswers.sort();
-
-        const isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(playerAnswers);
-
-        if (isCorrect) {
-            player.streak += 1;
-            const reward = Math.floor(lobby.baseReward * Math.pow(1.1, player.streak - 1));
-            player.score += reward;
-        } else {
-            player.streak = 0;
-        }
-
-        player.currentQuestion += 1;
-        await lobby.save();
-
-        const hasMoreQuestions = player.currentQuestion < lobby.quiz.questions.length;
-
-        res.status(200).json({
-            success: true,
-            correct: isCorrect,
-            score: player.score,
-            streak: player.streak,
-            hasMoreQuestions
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
-
-// Получить результаты лобби
-router.get('/:code/results', async (req, res) => {
-    try {
-        const { code } = req.params;
-
-        const lobby = await Lobby.findOne({ code });
-
-        if (!lobby) {
-            return res.status(404).json({ success: false, message: 'Lobby not found' });
-        }
-
-        const results = lobby.players
-            .map(player => ({
-                nickname: player.nickname,
-                score: player.score,
-                streak: player.streak
-            }))
-            .sort((a, b) => b.score - a.score);
-
-        res.status(200).json({ success: true, results });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
-
-// Распределение наград
+// ➡️ Распределение наград
 router.post('/:code/distribute-rewards', authMiddleware, async (req, res) => {
     try {
-        const { code } = req.params;
-
-        const lobby = await Lobby.findOne({ code });
-
-        if (!lobby) {
-            return res.status(404).json({ success: false, message: 'Lobby not found' });
-        }
-
-        if (!lobby.withReward) {
-            return res.status(400).json({ success: false, message: 'No reward distribution for this lobby' });
-        }
-
-        if (lobby.rewardDistributed) {
-            return res.status(400).json({ success: false, message: 'Rewards already distributed' });
-        }
-
-        const commissionAmount = (lobby.rewardBalance * COMMISSION_PERCENT) / 100;
-        const availableReward = lobby.rewardBalance - commissionAmount;
-
-        const results = lobby.players
-            .map(player => ({
-                nickname: player.nickname,
-                walletAddress: player.walletAddress,
-                score: player.score
-            }))
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 3);
-
-        const rewardDistribution = [];
-
-        if (results[0]) rewardDistribution.push({
-            nickname: results[0].nickname,
-            walletAddress: results[0].walletAddress,
-            reward: availableReward * 0.6
-        });
-
-        if (results[1]) rewardDistribution.push({
-            nickname: results[1].nickname,
-            walletAddress: results[1].walletAddress,
-            reward: availableReward * 0.3
-        });
-
-        if (results[2]) rewardDistribution.push({
-            nickname: results[2].nickname,
-            walletAddress: results[2].walletAddress,
-            reward: availableReward * 0.1
-        });
-
-        console.log('Reward distribution:', rewardDistribution);
-
-        lobby.rewardDistributed = true;
-        await lobby.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Rewards distributed successfully',
-            rewardDistribution,
-            commissionAmount
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+      const { code } = req.params;
+  
+      const lobby = await Lobby.findOne({ code });
+  
+      if (!lobby) return res.status(404).json({ success: false, message: 'Lobby not found' });
+      if (!lobby.withReward) return res.status(400).json({ success: false, message: 'No rewards for this lobby' });
+      if (!lobby.paid) return res.status(400).json({ success: false, message: 'Reward payment not completed' });
+      if (lobby.rewardDistributed) return res.status(400).json({ success: false, message: 'Rewards already distributed' });
+      if (lobby.rewardBalance <= 0) return res.status(400).json({ success: false, message: 'No reward balance' });
+  
+      const players = lobby.players.sort((a, b) => b.score - a.score);
+      if (players.length === 0) return res.status(400).json({ success: false, message: 'No players to reward' });
+  
+      const commissionAmount = (lobby.rewardBalance * COMMISSION_PERCENT) / 100;
+      const availableReward = lobby.rewardBalance - commissionAmount;
+  
+      const results = players.slice(0, 3);
+  
+      const rewardDistribution = [];
+  
+      if (results[0]) rewardDistribution.push({
+        nickname: results[0].nickname,
+        walletAddress: results[0].walletAddress,
+        reward: Math.floor(availableReward * 0.6)
+      });
+      if (results[1]) rewardDistribution.push({
+        nickname: results[1].nickname,
+        walletAddress: results[1].walletAddress,
+        reward: Math.floor(availableReward * 0.3)
+      });
+      if (results[2]) rewardDistribution.push({
+        nickname: results[2].nickname,
+        walletAddress: results[2].walletAddress,
+        reward: Math.floor(availableReward * 0.1)
+      });
+  
+      // ❗ Здесь должно быть реальное распределение TON через blockchain API
+      // TODO: Send real transactions to walletAddress
+      console.log('Reward distribution:', rewardDistribution);
+  
+      lobby.rewardDistributed = true;
+      await lobby.save();
+  
+      res.status(200).json({
+        success: true,
+        message: 'Rewards distributed successfully',
+        rewardDistribution,
+        commissionAmount
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ success: false, message: err.message });
     }
 });
 

@@ -14,6 +14,8 @@ const LobbySchema = new Schema({
     host: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     players: [PlayerSchema],
     started: { type: Boolean, default: false },
+    currentQuestionIndex: { type: Number, default: 0 },  // ➡️ Текущее место по вопросам
+
     baseReward: { type: Number, required: true },
 
     withReward: { type: Boolean, default: false },  // ➡️ Есть ли награда

@@ -1,216 +1,170 @@
 {
-    "info": {
-      "_postman_id": "a71552da-66b1-4e1c-9ee7-c5ea3da70ee2",
-      "name": "QuizApp Full Collection",
-      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  "info": {
+    "_postman_id": "QUIZ_APP_API_COLLECTION",
+    "name": "QuizApp API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:6000/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:6000/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        }
+      ]
     },
-    "item": [
-      {
-        "name": "Register User",
-        "request": {
-          "method": "POST",
-          "header": [],
-          "url": {
-            "raw": "http://localhost:6000/api/auth/register",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "auth", "register"]
-          },
-          "body": {
-            "mode": "raw",
-            "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}"
+    {
+      "name": "Quiz",
+      "item": [
+        {
+          "name": "Create Quiz",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "http://localhost:6000/api/quiz",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "quiz"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Тестовый Квиз\",\n  \"description\": \"Описание теста\",\n  \"questions\": [\n    {\n      \"questionText\": \"2 + 2?\",\n      \"options\": [\"3\", \"4\", \"5\", \"6\"],\n      \"correctAnswers\": [false, true, false, false]\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Get All Quizzes",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "http://localhost:6000/api/quiz",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "quiz"]
+            }
+          }
+        },
+        {
+          "name": "Get Quiz by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "http://localhost:6000/api/quiz/{{quizId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "quiz", "{{quizId}}"]
+            }
           }
         }
-      },
-      {
-        "name": "Login User",
-        "request": {
-          "method": "POST",
-          "header": [],
-          "url": {
-            "raw": "http://localhost:6000/api/auth/login",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "auth", "login"]
-          },
-          "body": {
-            "mode": "raw",
-            "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}"
+      ]
+    },
+    {
+      "name": "Lobby",
+      "item": [
+        {
+          "name": "Create Lobby",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "http://localhost:6000/api/lobby",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "lobby"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quizId\": \"{{quizId}}\",\n  \"baseReward\": 300,\n  \"withReward\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Get Lobby Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "lobby", "{{lobbyCode}}"]
+            }
+          }
+        },
+        {
+          "name": "Distribute Rewards",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/distribute-rewards",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "lobby", "{{lobbyCode}}", "distribute-rewards"]
+            }
           }
         }
-      },
-      {
-        "name": "Create Quiz",
-        "request": {
-          "method": "POST",
-          "header": [
-            {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"},
-            {"key": "Content-Type", "value": "application/json", "type": "text"}
-          ],
-          "url": {
-            "raw": "http://localhost:6000/api/quiz",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "quiz"]
-          },
-          "body": {
-            "mode": "raw",
-            "raw": "{\n  \"title\": \"Sample Quiz\",\n  \"description\": \"Quiz description\",\n  \"questions\": [\n    {\n      \"questionText\": \"What is 2+2?\",\n      \"options\": [\"3\", \"4\", \"5\", \"6\"],\n      \"correctAnswers\": [false, true, false, false]\n    }\n  ]\n}"
-          }
-        }
-      },
-      {
-        "name": "Get All Quizzes",
-        "request": {
-          "method": "GET",
-          "header": [],
-          "url": {
-            "raw": "http://localhost:6000/api/quiz",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "quiz"]
-          }
-        }
-      },
-      {
-        "name": "Get Quiz By ID",
-        "request": {
-          "method": "GET",
-          "header": [],
-          "url": {
-            "raw": "http://localhost:6000/api/quiz/{{quizId}}",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "quiz", "{{quizId}}"]
-          }
-        }
-      },
-      {
-        "name": "Create Lobby",
-        "request": {
-          "method": "POST",
-          "header": [
-            {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"},
-            {"key": "Content-Type", "value": "application/json", "type": "text"}
-          ],
-          "url": {
-            "raw": "http://localhost:6000/api/lobby",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "lobby"]
-          },
-          "body": {
-            "mode": "raw",
-            "raw": "{\n  \"quizId\": \"{{quizId}}\",\n  \"baseReward\": 300,\n  \"withReward\": true\n}"
-          }
-        }
-      },
-      {
-        "name": "Join Lobby",
-        "request": {
-          "method": "POST",
-          "header": [
-            {"key": "Content-Type", "value": "application/json", "type": "text"}
-          ],
-          "url": {
-            "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/join",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "lobby", "{{lobbyCode}}", "join"]
-          },
-          "body": {
-            "mode": "raw",
-            "raw": "{\n  \"nickname\": \"PlayerOne\",\n  \"walletAddress\": \"EQxxxxxxxxxx...\"\n}"
-          }
-        }
-      },
-      {
-        "name": "Get Lobby Info",
-        "request": {
-          "method": "GET",
-          "header": [],
-          "url": {
-            "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "lobby", "{{lobbyCode}}"]
-          }
-        }
-      },
-      {
-        "name": "Start Lobby",
-        "request": {
-          "method": "POST",
-          "header": [
-            {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}
-          ],
-          "url": {
-            "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/start",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "lobby", "{{lobbyCode}}", "start"]
-          }
-        }
-      },
-      {
-        "name": "Answer Question",
-        "request": {
-          "method": "POST",
-          "header": [
-            {"key": "Content-Type", "value": "application/json", "type": "text"}
-          ],
-          "url": {
-            "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/answer",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "lobby", "{{lobbyCode}}", "answer"]
-          },
-          "body": {
-            "mode": "raw",
-            "raw": "{\n  \"nickname\": \"PlayerOne\",\n  \"selectedAnswers\": [1]\n}"
-          }
-        }
-      },
-      {
-        "name": "Get Lobby Results",
-        "request": {
-          "method": "GET",
-          "header": [],
-          "url": {
-            "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/results",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "lobby", "{{lobbyCode}}", "results"]
-          }
-        }
-      },
-      {
-        "name": "Distribute Rewards",
-        "request": {
-          "method": "POST",
-          "header": [
-            {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}
-          ],
-          "url": {
-            "raw": "http://localhost:6000/api/lobby/{{lobbyCode}}/distribute-rewards",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "6000",
-            "path": ["api", "lobby", "{{lobbyCode}}", "distribute-rewards"]
-          }
-        }
-      }
-    ]
-  }
-  
+      ]
+    }
+  ]
+}

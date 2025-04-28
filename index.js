@@ -3,10 +3,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const morgan = require('morgan');
 const cors = require('cors');
+const http = require('http');
 
 const router = require('./routes/index');
+const { setupSocket } = require('./socket'); // <= правильный импорт
 
 const app = express();
+const server = http.createServer(app);
+
+setupSocket(server); // <= правильный вызов
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
@@ -24,9 +29,10 @@ app.use(express.static('public'));
 app.use('/api', router);
 
 app.use((req, res, next) => {
-    res.status(404).json({ success: false, message: 'Not found' })
+    res.status(404).json({ success: false, message: 'Not found' });
 });
 
-app.listen(process.env.PORT, () => {
-    console.log(`Server running at http://localhost:${process.env.PORT}`);
+const PORT = process.env.PORT || 6000;
+server.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
 });
