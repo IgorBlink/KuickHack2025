@@ -71,6 +71,46 @@
         }
       },
       {
+        "name": "Get All Quizzes",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/quiz",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "quiz"]
+          }
+        }
+      },
+      {
+        "name": "Get Quiz By ID",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/quiz/{{quizId}}",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "quiz", "{{quizId}}"]
+          }
+        }
+      },
+      {
         "name": "Create Lobby",
         "request": {
           "method": "POST",
