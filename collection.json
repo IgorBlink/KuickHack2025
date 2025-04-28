@@ -1,0 +1,202 @@
+{
+    "info": {
+      "_postman_id": "12f987f0-b123-4b89-aee7-0c55e4e4a3ef",
+      "name": "QuizApp API",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Register User",
+        "request": {
+          "method": "POST",
+          "header": [],
+          "url": {
+            "raw": "http://localhost:3000/auth/register",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["auth", "register"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"123456\"\n}"
+          }
+        }
+      },
+      {
+        "name": "Login User",
+        "request": {
+          "method": "POST",
+          "header": [],
+          "url": {
+            "raw": "http://localhost:3000/auth/login",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["auth", "login"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"123456\"\n}"
+          }
+        }
+      },
+      {
+        "name": "Create Quiz",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/quiz",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "quiz"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"title\": \"Мой тестовый квиз\",\n    \"description\": \"Описание квиза\",\n    \"questions\": [\n        {\n            \"questionText\": \"Что такое 2 + 2?\",\n            \"options\": [\"3\", \"4\", \"5\", \"6\"],\n            \"correctAnswers\": [false, true, false, false]\n        }\n    ]\n}"
+          }
+        }
+      },
+      {
+        "name": "Create Lobby",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/lobby",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "lobby"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"quizId\": \"{{quizId}}\"\n}"
+          }
+        }
+      },
+      {
+        "name": "Join Lobby",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/join",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "lobby", "{{lobbyCode}}", "join"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"nickname\": \"PlayerOne\"\n}"
+          }
+        }
+      },
+      {
+        "name": "Get Lobby Info",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "lobby", "{{lobbyCode}}"]
+          }
+        }
+      },
+      {
+        "name": "Start Lobby",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/start",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "lobby", "{{lobbyCode}}", "start"]
+          }
+        }
+      },
+      {
+        "name": "Answer Question",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:3000/api/lobby/{{lobbyCode}}/answer",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "3000",
+            "path": ["api", "lobby", "{{lobbyCode}}", "answer"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"nickname\": \"PlayerOne\",\n    \"selectedAnswers\": [1]\n}"
+          }
+        }
+      }
+    ]
+  }
+  
