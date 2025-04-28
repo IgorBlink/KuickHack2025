@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const morgan = require('morgan');
 const cors = require('cors');
 
+const authMiddleware = require('./middleware/auth');
+
 const app = express();
 
 mongoose.connect(process.env.MONGO_URI)
@@ -19,7 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static('public'));
 
-app.use();
+app.use('/', authMiddleware);
 
 app.use((req, res, next) => {
     res.status(404).render('error', { message: 'Not Found' })
