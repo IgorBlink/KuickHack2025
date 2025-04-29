@@ -2,7 +2,9 @@
 
 <div align="center">
   
-![BlinkQuiz Logo](https://via.placeholder.com/200x200?text=BlinkQuiz)
+<div align="center">
+  <img src="/logo.png" alt="BlinkQuiz" width="100%" height="25px"/>
+  </div>
 
 ### Инновационная Web3-Edutech платформа для интерактивного обучения
   
@@ -53,7 +55,7 @@
 ## 📱 Скриншоты
 
 <div align="center">
-  <img src="https://via.placeholder.com/800x400?text=BlinkQuiz+Screenshot+1" alt="BlinkQuiz Screenshot" width="80%"/>
+  <img src="/interface.png" alt="BlinkQuiz Screenshot" width="80%"/>
   <p><i>Пример интерфейса викторины с AI-генерацией</i></p>
 </div>
 
