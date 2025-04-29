@@ -6,12 +6,12 @@ const cors = require('cors');
 const http = require('http');
 
 const router = require('./routes/index');
-const { setupSocket } = require('./socket'); // <= правильный импорт
+const { setupSocket } = require('./socket');
 
 const app = express();
 const server = http.createServer(app);
 
-setupSocket(server); // <= правильный вызов
+setupSocket(server);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
