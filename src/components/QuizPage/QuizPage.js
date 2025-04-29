@@ -13,6 +13,7 @@ const QuizPage = () => {
   const [loading, setLoading] = useState(true);
   const [showAnswers, setShowAnswers] = useState(false);
   const [error, setError] = useState(null);
+  const [creatingLobby, setCreatingLobby] = useState(false);
   
   // Загрузка данных квиза с сервера
   useEffect(() => {
@@ -21,74 +22,19 @@ const QuizPage = () => {
         setLoading(true);
         setError(null);
         
-        // В реальном приложении:
-        // const data = await quizzesAPI.getQuizById(id);
-        // setQuiz(data);
+        // Запрос будет кэшироваться
+        const response = await quizzesAPI.getQuizById(id);
         
-        // Пока используем моковые данные для разработки
-        setTimeout(() => {
-          setQuiz({
-            id: id,
-            title: "Concepts in fractions",
-            category: "Mathematics",
-            grade: "1-й класс",
-            plays: 805,
-            rating: 4.5,
-            questions: [
-              {
-                id: 1,
-                type: "МНОЖЕСТВЕННЫЙ ВЫБОР",
-                text: "If you divide a whole into 2 equal parts, one of the parts is ________ of the whole.",
-                options: ["1/2", "1/3", "1/4", "2/1"],
-                correct: 0,
-                timeLimit: 30,
-                points: 1
-              },
-              {
-                id: 2,
-                type: "МНОЖЕСТВЕННЫЙ ВЫБОР",
-                text: "Does this shape have equal parts?",
-                imageUrl: "https://via.placeholder.com/150",
-                options: ["Yes", "No"],
-                correct: 1,
-                timeLimit: 60,
-                points: 1
-              },
-              {
-                id: 3,
-                type: "МНОЖЕСТВЕННЫЙ ВЫБОР",
-                text: "Brandon has two pieces of toast that are the same size. What are two different ways he can divide the toast into halves?",
-                options: ["Horizontally and Vertically", "Diagonally and Horizontally", "In thirds and fourths", "In quarters only"],
-                correct: 0,
-                timeLimit: 30,
-                points: 1
-              },
-              {
-                id: 4,
-                type: "МНОЖЕСТВЕННЫЙ ВЫБОР",
-                text: "Jamal folded a piece of cloth into equal parts. What is the name for the parts?",
-                imageUrl: "https://via.placeholder.com/150",
-                options: ["Halves", "Thirds", "Quarters", "Sixths"],
-                correct: 2,
-                timeLimit: 30,
-                points: 1
-              },
-              {
-                id: 5,
-                type: "МНОЖЕСТВЕННЫЙ ВЫБОР",
-                text: "Which apple is cut in half?",
-                options: ["Apple A", "Apple B", "Apple C", "Apple D"],
-                correct: 1,
-                timeLimit: 30,
-                points: 1
-              }
-            ]
-          });
-          setLoading(false);
-        }, 1000);
+        if (response.success && response.quiz) {
+          const adaptedQuiz = adaptQuizData(response.quiz);
+          setQuiz(adaptedQuiz);
+        } else {
+          throw new Error('Неверный формат данных от API');
+        }
       } catch (err) {
         console.error('Error loading quiz:', err);
         setError('Не удалось загрузить квиз. Пожалуйста, попробуйте позже.');
+      } finally {
         setLoading(false);
       }
     };
@@ -96,12 +42,70 @@ const QuizPage = () => {
     fetchQuiz();
   }, [id]);
 
+  // Функция для адаптации данных от API к формату компонента
+  const adaptQuizData = (apiQuiz) => {
+    // Создаем вопросы в нужном формате
+    const questions = apiQuiz.questions.map((q, index) => {
+      // Находим индекс правильного ответа (первый true в массиве correctAnswers)
+      const correctIndex = q.correctAnswers.findIndex(answer => answer === true);
+      
+      return {
+        id: index + 1,
+        type: "МНОЖЕСТВЕННЫЙ ВЫБОР",
+        text: q.questionText,
+        options: q.options,
+        correct: correctIndex, // Индекс правильного ответа
+        timeLimit: 30, // Дефолтное значение, можно настроить
+        points: 1    // Дефолтное значение, можно настроить
+      };
+    });
+
+    // Форматируем дату создания
+    const createdAt = new Date(apiQuiz.createdAt);
+    const formattedDate = createdAt.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    // Возвращаем адаптированный объект квиза
+    return {
+      id: apiQuiz._id,
+      title: apiQuiz.title,
+      description: apiQuiz.description,
+      category: "IT и программирование", // Можно настроить или получать из API
+      createdAt: formattedDate,
+      questions: questions
+    };
+  };
+
   const toggleAnswers = () => {
     setShowAnswers(!showAnswers);
   };
 
-  const handleStartQuiz = () => {
-    navigate(`/lobby/${id}`);
+  const handleStartQuiz = async () => {
+    if (!isAuthenticated) {
+      navigate('/auth', { state: { redirectTo: `/quiz/${id}` } });
+      return;
+    }
+    
+    try {
+      setCreatingLobby(true);
+      // Создаем лобби через API
+      const lobbyData = await quizzesAPI.createLobby({
+        quizId: id,
+        baseReward: 300,
+        withReward: true
+      });
+      
+      // Перенаправляем на страницу лобби с полученным кодом
+      navigate(`/lobby/${lobbyData.code || lobbyData._id}`);
+    } catch (err) {
+      console.error('Ошибка создания лобби:', err);
+      setError('Не удалось создать лобби. Пожалуйста, попробуйте позже.');
+    } finally {
+      setCreatingLobby(false);
+    }
   };
 
   if (loading) {
@@ -147,26 +151,18 @@ const QuizPage = () => {
           <div className="quiz-page__info">
             <h1 className="quiz-page__title">{quiz.title}</h1>
             <div className="quiz-page__meta">
-              <span className="quiz-page__rating">
-                <span className="quiz-page__rating-icon">★</span>
-                <span className="quiz-page__rating-text">Оценка</span>
-              </span>
               <span className="quiz-page__category">
                 <span className="quiz-page__category-icon">📊</span>
                 <span className="quiz-page__category-text">{quiz.category}</span>
               </span>
-              {/* <span className="quiz-page__grade">
-                <span className="quiz-page__grade-icon">🎓</span>
-                <span className="quiz-page__grade-text">{quiz.grade}</span>
-              </span> */}
-              {/* <span className="quiz-page__plays">
-                <span className="quiz-page__plays-icon">🎮</span>
-                <span className="quiz-page__plays-text">{quiz.plays} игры</span>
-              </span> */}
-              {/* <span className="quiz-page__stage">
-                <span className="quiz-page__stage-icon">🚩</span>
-                <span className="quiz-page__stage-text">Середина</span>
-              </span> */}
+              <span className="quiz-page__description">
+                <span className="quiz-page__description-icon">📝</span>
+                <span className="quiz-page__description-text">{quiz.description}</span>
+              </span>
+              <span className="quiz-page__created-at">
+                <span className="quiz-page__created-at-icon">📅</span>
+                <span className="quiz-page__created-at-text">Создан: {quiz.createdAt}</span>
+              </span>
             </div>
           </div>
           
@@ -186,11 +182,12 @@ const QuizPage = () => {
               Рабочий лист
             </button>
             <button 
-              className="quiz-page__button quiz-page__button--primary"
+              className={`quiz-page__button quiz-page__button--primary ${creatingLobby ? 'quiz-page__button--loading' : ''}`}
               onClick={handleStartQuiz}
+              disabled={creatingLobby}
             >
               <span className="quiz-page__button-icon">▶️</span>
-              Начать сейчас
+              {creatingLobby ? 'Создание лобби...' : 'Начать сейчас'}
             </button>
           </div>
         </div>
@@ -203,7 +200,7 @@ const QuizPage = () => {
             </div>
             <div className="quiz-page__toggle-answers">
               <label className="quiz-page__toggle">
-                <span className="quiz-page__toggle-label">Показать варианты ответа</span>
+                <span className="quiz-page__toggle-label">Показать правильные ответы</span>
                 <input 
                   type="checkbox" 
                   checked={showAnswers} 

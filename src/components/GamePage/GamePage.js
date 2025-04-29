@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './GamePage.css';
 import logo from '../../assets/logo.png';
+// Закомментируем импорт API для использования мока
+// import quizzesAPI from '../../api/quizzes';
 
 const GamePage = () => {
   const { gameCode } = useParams();
@@ -17,6 +19,9 @@ const GamePage = () => {
     memes: true,
     soundEffects: true
   });
+  const [error, setError] = useState('');
+  const [joining, setJoining] = useState(false);
+  const [walletAddress, setWalletAddress] = useState('');
 
   // В реальном приложении здесь будет API-запрос для получения информации об игре
   useEffect(() => {
@@ -67,13 +72,38 @@ const GamePage = () => {
     setPlayerName(`${randomAdjective} ${randomName}`);
   };
 
-  const handleJoinGame = (e) => {
-    e.preventDefault();
-    
-    if (playerName.trim()) {
-      // В реальном приложении здесь будет API-запрос на присоединение к игре
-      navigate(`/play/${gameCode}`, { state: { playerName, settings } });
+  // Обновлённый метод присоединения к игре без API-запроса
+  const handleJoinGame = async () => {
+    if (!playerName.trim()) {
+      setError('Пожалуйста, введите ваше имя');
+      return;
     }
+    
+    // Симулируем процесс подключения
+    setJoining(true);
+    setError('');
+    
+    // Имитируем задержку сети
+    setTimeout(() => {
+      // Создаём моковые данные ответа
+      const mockJoinResult = {
+        playerId: 'player_' + Math.floor(Math.random() * 1000),
+        success: true,
+        message: 'Успешное подключение'
+      };
+      
+      // Перенаправляем в лобби с моковыми данными
+      navigate(`/lobby/${gameCode}`, {
+        state: {
+          playerName,
+          isHost: false,
+          playerId: mockJoinResult.playerId,
+          soundEnabled: settings.soundEffects,
+          memesEnabled: settings.memes,
+          voiceoverEnabled: settings.readAloud
+        }
+      });
+    }, 1500); // Небольшая задержка для иммитации сетевого запроса
   };
 
   // Обработчик кнопки обновления имени
@@ -91,22 +121,26 @@ const GamePage = () => {
       <div className="game__header">
         <div className="game__theme">
           <img src={logo} alt="Logo" className="game__logo" />
-          {gameInfo.title}
+     
         </div>
-        <div className="game__counter">
+        {/* <div className="game__counter">
           {gameInfo.players} <span className="game__counter-separator">/</span> {gameInfo.maxPlayers}
-        </div>
+        </div> */}
         <div className="game__code-box">
-          <div className="game__code-label">Game Code</div>
-          <div className="game__code-value">{gameCode}</div>
+          <div className="game__code-label">Game Code</div> 
+          <div className="game__code-value">
+            {gameCode.slice(0, 3)}
+            <span className="game__code-separator"></span>
+            {gameCode.slice(3, 6)}
+          </div>
         </div>
       </div>
 
       <div className="game__content">
         <div className="game__form-container">
-          <div className="game__title">Ваше имя викторины...</div>
+          <div className="game__title">Как тебя зовут?</div>
           
-          <form onSubmit={handleJoinGame} className="game__form">
+          <form onSubmit={(e) => { e.preventDefault(); handleJoinGame(); }} className="game__form">
             <div className="game__input-wrapper">
               <input
                 type="text"
@@ -129,14 +163,14 @@ const GamePage = () => {
             
             <button 
               type="submit" 
-              className="game__start-button"
-              disabled={!playerName.trim()}
+              className={`game__start-button ${joining ? 'game__start-button--loading' : ''}`}
+              disabled={!playerName.trim() || joining}
             >
-              Начинать
+              {joining ? 'Подключение...' : 'Начинать'}
             </button>
           </form>
           
-          <div className="game__settings">
+          {/* <div className="game__settings">
             <div className="game__settings-title">Настройки</div>
             
             <div className="game__setting-item">
@@ -191,7 +225,13 @@ const GamePage = () => {
                 <span className="game__toggle-slider"></span>
               </label>
             </div>
-          </div>
+          </div> */}
+
+          {error && (
+            <div className="game__error">
+              {error}
+            </div>
+          )}
         </div>
       </div>
     </div>

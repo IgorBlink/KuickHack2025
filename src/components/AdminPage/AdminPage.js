@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import './AdminPage.css';
 import logo from '../../assets/logo.png';
 import { useAuth } from '../../context/AuthContext';
+import quizzesAPI from '../../api/quizzes';
 
 // Моковые данные для тем квизов
 const QUIZ_CATEGORIES = [
@@ -59,9 +60,97 @@ const QUIZ_CATEGORIES = [
 const AdminPage = () => {
   const { isAuthenticated, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [categories] = useState(QUIZ_CATEGORIES);
-  const [filteredCategories, setFilteredCategories] = useState(QUIZ_CATEGORIES);
+  const [categories, setCategories] = useState([]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
   const [activeTab, setActiveTab] = useState('foryou');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Вместо fetchedRef используем простое состояние loading
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Вызов API теперь будет кэшироваться
+        const response = await quizzesAPI.getQuizzes();
+        
+        if (response.success && response.quizzes) {
+          const processedData = processQuizData(response.quizzes);
+          setCategories(processedData);
+          setFilteredCategories(processedData);
+        } else {
+          throw new Error('Некорректный формат данных от API');
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки квизов:', err);
+        setError('Не удалось загрузить каталог квизов. Пожалуйста, попробуйте позже.');
+        
+        // Запасной вариант с моковыми данными
+        const mockCategories = [
+          {
+            id: 'it',
+            title: 'IT и программирование',
+            quizzes: [
+              { 
+                id: '680ff2e075c7741d08435530', 
+                title: 'Тестовый IT-Квиз', 
+                description: 'Базовые вопросы по информационным технологиям',
+                activity: 'Создан: 28 апреля 2025'
+              }
+            ]
+          }
+        ];
+        
+        setCategories(mockCategories);
+        setFilteredCategories(mockCategories);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuizzes();
+  }, []); // Пустой массив зависимостей для запуска только при монтировании
+  
+  // Функция для преобразования данных с API в структуру для UI
+  const processQuizData = (quizzes) => {
+    try {
+      // Группируем квизы по категориям
+      // Поскольку в текущем ответе API нет категорий, создаем одну общую
+      const categoriesMap = {
+        'all': {
+          id: 'all',
+          title: 'Все квизы',
+          quizzes: []
+        }
+      };
+      
+      // Обрабатываем каждый квиз из ответа API
+      quizzes.forEach(quiz => {
+        // Преобразуем дату в удобочитаемый формат
+        const date = new Date(quiz.createdAt);
+        const formattedDate = date.toLocaleDateString('ru-RU', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+        
+        // Добавляем квиз в категорию "Все квизы"
+        categoriesMap['all'].quizzes.push({
+          id: quiz._id,
+          title: quiz.title,
+          description: quiz.description,
+          activity: `Создан: ${formattedDate}`
+        });
+      });
+      
+      return Object.values(categoriesMap);
+    } catch (error) {
+      console.error('Ошибка обработки данных:', error);
+      return [];
+    }
+  };
 
   // Фильтрация тем по поисковому запросу
   useEffect(() => {
@@ -92,6 +181,21 @@ const AdminPage = () => {
   const handleTabClick = (tab) => {
     setActiveTab(tab);
   };
+
+  // Отображение состояния загрузки
+  if (loading) {
+    return (
+      <div className="admin">
+        <div className="admin__stars"></div>
+        <div className="admin__stars-2"></div>
+        <div className="admin__stars-3"></div>
+        <div className="admin__loading">
+          <div className="admin__spinner"></div>
+          <p>Загрузка каталога квизов...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin">
@@ -186,6 +290,17 @@ const AdminPage = () => {
             </button>
           </div>
 
+          {error && (
+            <div className="admin__error-message">
+              <p>{error}</p>
+              <button onClick={() => {
+                window.location.reload();
+              }} className="admin__button admin__button--outline">
+                Попробовать снова
+              </button>
+            </div>
+          )}
+
           <section className="admin__trending">
             <div className="admin__section-header">
               <h2 className="admin__section-title">
@@ -193,12 +308,13 @@ const AdminPage = () => {
                   <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
                   <polyline points="17 6 23 6 23 12"></polyline>
                 </svg>
-                Трендовые квизы
+                Все квизы
               </h2>
             </div>
 
             {filteredCategories.map(category => (
               <div key={category.id} className="admin__category">
+                <h3 className="admin__category-title">{category.title}</h3>
                 <div className="admin__quizzes-grid">
                   {category.quizzes.map(quiz => (
                     <Link to={`/quiz/${quiz.id}`} key={quiz.id} className="admin__quiz-card">
@@ -227,6 +343,7 @@ const AdminPage = () => {
                       </div>
                       <div className="admin__quiz-info">
                         <h3 className="admin__quiz-title">{quiz.title}</h3>
+                        <p className="admin__quiz-description">{quiz.description}</p>
                         <p className="admin__quiz-activity">{quiz.activity}</p>
                       </div>
                     </Link>

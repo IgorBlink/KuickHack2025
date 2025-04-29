@@ -1,232 +1,253 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import './PlayQuizPage.css';
 import logo from '../../assets/logo.png';
 
 const PlayQuizPage = () => {
   const { gameCode } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
-  const playerName = location.state?.playerName || 'Игрок';
-  const playerSettings = location.state?.settings || { memes: true, soundEffects: true, readAloud: false };
+  const timerId = useRef(null);
   
+  // Состояния
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [isAnswered, setIsAnswered] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(20);
   const [score, setScore] = useState(0);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [quizData, setQuizData] = useState({
-    title: 'Тема',
-    questions: [
-      {
-        id: 1,
-        text: 'Какая планета ближе всего к Солнцу?',
-        options: ['Венера', 'Меркурий', 'Марс', 'Земля'],
-        correctAnswer: 1,
-        timeLimit: 30,
-        points: 100
-      },
-      {
-        id: 2,
-        text: 'Кто написал роман "Война и мир"?',
-        options: ['Федор Достоевский', 'Лев Толстой', 'Александр Пушкин', 'Иван Тургенев'],
-        correctAnswer: 1,
-        timeLimit: 30,
-        points: 100
-      },
-      {
-        id: 3,
-        text: 'Какая формула представляет теорию относительности Эйнштейна?',
-        options: ['E=mc²', 'F=ma', 'PV=nRT', 'E=hf'],
-        correctAnswer: 0,
-        timeLimit: 30,
-        points: 150
-      },
-      {
-        id: 4,
-        text: 'Какое самое глубокое озеро в мире?',
-        options: ['Каспийское море', 'Озеро Байкал', 'Озеро Виктория', 'Великие озера'],
-        correctAnswer: 1,
-        timeLimit: 30,
-        points: 100
-      },
-      {
-        id: 5,
-        text: 'Кто является автором картины "Звездная ночь"?',
-        options: ['Клод Моне', 'Пабло Пикассо', 'Винсент Ван Гог', 'Леонардо да Винчи'],
-        correctAnswer: 2,
-        timeLimit: 30,
-        points: 120
-      }
-    ]
-  });
-
-  // Имитация загрузки данных с сервера
-  useEffect(() => {
-    // В реальном приложении здесь будет API-запрос для получения данных квиза
-    console.log(`Загрузка квиза с кодом ${gameCode} для игрока ${playerName}`);
-    
-    // Здесь бы был запрос к API
-    // const fetchQuizData = async () => {
-    //   try {
-    //     const response = await api.get(`/quizzes/play/${gameCode}`);
-    //     setQuizData(response.data);
-    //     setTimeLeft(response.data.questions[0].timeLimit);
-    //   } catch (error) {
-    //     console.error('Ошибка при загрузке квиза:', error);
-    //   }
-    // };
-    // fetchQuizData();
-    
-    // Вместо этого просто устанавливаем таймер
-    setTimeLeft(quizData.questions[0].timeLimit);
-  }, [gameCode, playerName, quizData.questions]);
-
-  // Обработка таймера вопроса
-  useEffect(() => {
-    if (timeLeft > 0 && !showAnswer) {
-      const timer = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !showAnswer) {
-      // Время истекло, показываем правильный ответ
-      handleTimeUp();
+  const [quizData, setQuizData] = useState(null);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [soundEnabled] = useState(true);
+  const [questions] = useState([
+    {
+      id: 1,
+      text: 'Какая планета является самой большой в Солнечной системе?',
+      options: ['Земля', 'Марс', 'Юпитер', 'Сатурн'],
+      correctAnswer: 2, // Юпитер
+      timeLimit: 20
+    },
+    {
+      id: 2,
+      text: 'Какое химическое обозначение золота?',
+      options: ['Au', 'Ag', 'Fe', 'Cu'],
+      correctAnswer: 0, // Au
+      timeLimit: 15
+    },
+    {
+      id: 3,
+      text: 'Какая страна является самой большой по площади?',
+      options: ['Китай', 'США', 'Канада', 'Россия'],
+      correctAnswer: 3, // Россия
+      timeLimit: 15
+    },
+    {
+      id: 4,
+      text: 'Кто написал "Война и мир"?',
+      options: ['Федор Достоевский', 'Лев Толстой', 'Александр Пушкин', 'Николай Гоголь'],
+      correctAnswer: 1, // Лев Толстой
+      timeLimit: 20
     }
-  }, [timeLeft, showAnswer]);
-
-  const handleTimeUp = () => {
-    // Показываем правильный ответ
-    setShowAnswer(true);
-    
-    // Через 3 секунды переходим к следующему вопросу
-    setTimeout(() => {
-      goToNextQuestion();
-    }, 3000);
-  };
-
-  const handleAnswerSelect = (answerIndex) => {
-    if (showAnswer) return; // Не позволяем изменять ответ после окончания времени
+  ]);
+  
+  // Обработчик перехода к следующему вопросу
+  const handleNextQuestion = useCallback(() => {
+    if (currentQuestion < questions.length - 1) {
+      // Переход к следующему вопросу
+      setCurrentQuestion(prevQuestion => prevQuestion + 1);
+      setSelectedAnswer(null);
+      setIsAnswered(false);
+      setShowResult(false);
+      setTimeLeft(questions[currentQuestion + 1]?.timeLimit || 20);
+    } else {
+      // Квиз завершен
+      setQuizCompleted(true);
+    }
+  }, [currentQuestion, questions]);
+  
+  // Обработчик выбора ответа
+  const handleAnswerSelect = useCallback((answerIndex) => {
+    if (isAnswered) return;
     
     setSelectedAnswer(answerIndex);
-    setShowAnswer(true);
+    setIsAnswered(true);
     
-    // Проверяем, правильный ли ответ и начисляем очки
-    const currentQ = quizData.questions[currentQuestion];
-    if (answerIndex === currentQ.correctAnswer) {
-      // Формула подсчета очков: базовые очки + дополнительные очки за скорость ответа
-      const timeBonus = Math.floor((timeLeft / currentQ.timeLimit) * 50);
-      const pointsEarned = currentQ.points + timeBonus;
-      setScore(score + pointsEarned);
+    // Проверяем, правильный ли ответ
+    const isCorrect = answerIndex === questions[currentQuestion]?.correctAnswer;
+    
+    if (isCorrect) {
+      // Рассчитываем очки на основе оставшегося времени
+      const pointsForCorrectAnswer = 1000;
+      const timeBonus = Math.floor(timeLeft * 100);
+      setScore(prevScore => prevScore + pointsForCorrectAnswer + timeBonus);
     }
     
-    // Через 3 секунды переходим к следующему вопросу
+    // Сначала показываем только выбранный ответ
     setTimeout(() => {
-      goToNextQuestion();
-    }, 3000);
-  };
-
-  const goToNextQuestion = () => {
-    if (currentQuestion < quizData.questions.length - 1) {
-      // Переход к следующему вопросу
-      setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswer(null);
-      setShowAnswer(false);
-      setTimeLeft(quizData.questions[currentQuestion + 1].timeLimit);
-    } else {
-      // Квиз завершен, показываем результаты
-      navigate(`/results/${gameCode}`, { 
-        state: { 
-          playerName, 
-          score, 
-          totalQuestions: quizData.questions.length 
-        } 
-      });
+      setShowResult(true);
+      
+      setTimeout(() => {
+        handleNextQuestion();
+      }, 2000);
+    }, 2000);
+  }, [isAnswered, questions, currentQuestion, timeLeft, handleNextQuestion]);
+  
+  // Имитация загрузки данных квиза при монтировании
+  useEffect(() => {
+    console.log(`Загрузка квиза с кодом: ${gameCode}`);
+    
+    // Устанавливаем начальный таймер для первого вопроса
+    if (questions.length > 0) {
+      setTimeLeft(questions[0]?.timeLimit || 20);
     }
+    
+    // Очистка таймера при размонтировании
+    return () => {
+      if (timerId.current) {
+        clearTimeout(timerId.current);
+      }
+    };
+  }, [gameCode, questions]);
+  
+  // Обработка таймера
+  useEffect(() => {
+    // Если квиз завершен или ответ уже дан, не запускаем таймер
+    if (quizCompleted || isAnswered) return;
+    
+    if (timeLeft > 0) {
+      timerId.current = setTimeout(() => {
+        setTimeLeft(prevTime => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      // Время вышло, переходим к следующему вопросу
+      handleNextQuestion();
+    }
+    
+    return () => {
+      if (timerId.current) {
+        clearTimeout(timerId.current);
+      }
+    };
+  }, [timeLeft, isAnswered, quizCompleted, handleNextQuestion]);
+  
+  // Эффект для звука при ответе
+  useEffect(() => {
+    if (soundEnabled && isAnswered) {
+      console.log('Звук ответа воспроизведен');
+    }
+  }, [isAnswered, soundEnabled]);
+  
+  // Эффект для перехода на страницу результатов
+  useEffect(() => {
+    if (quizCompleted) {
+      const timer = setTimeout(() => {
+        navigate(`/results/${gameCode}`);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [quizCompleted, navigate, gameCode]);
+  
+  // Расчет прогресса
+  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  
+  // Функция для определения класса варианта ответа
+  const getOptionClass = (index) => {
+    if (!isAnswered) return '';
+    
+    if (selectedAnswer === index) {
+      if (showResult) {
+        return index === questions[currentQuestion].correctAnswer 
+          ? 'play-quiz__option--correct' 
+          : 'play-quiz__option--incorrect';
+      }
+      return 'play-quiz__option--selected';
+    }
+    
+    if (showResult && index === questions[currentQuestion].correctAnswer) {
+      return 'play-quiz__option--correct';
+    }
+    
+    return '';
   };
-
-  const getCurrentQuestion = () => {
-    return quizData.questions[currentQuestion];
-  };
-
-  const getProgressPercentage = () => {
-    return ((currentQuestion + 1) / quizData.questions.length) * 100;
-  };
-
-  const getTimerPercentage = () => {
-    const question = getCurrentQuestion();
-    return (timeLeft / question.timeLimit) * 100;
-  };
-
+  
+  // Рендеринг компонента
   return (
     <div className="play-quiz">
+      {/* Фоновые элементы */}
       <div className="play-quiz__stars"></div>
       <div className="play-quiz__stars-2"></div>
       <div className="play-quiz__stars-3"></div>
-
+      
+      {/* Хедер */}
       <div className="play-quiz__header">
         <div className="play-quiz__logo">
-          <img src={logo} alt="Logo" />
+          <img src={logo} alt="Quiz App" className="play-quiz__logo-image" />
         </div>
+        
         <div className="play-quiz__player-info">
-          <div className="play-quiz__player-name">{playerName}</div>
-          <div className="play-quiz__score">{score} баллов</div>
-        </div>
-        <div className="play-quiz__game-info">
-          <div className="play-quiz__game-title">{quizData.title}</div>
-          <div className="play-quiz__game-code">Код игры: {gameCode}</div>
+          <div className="play-quiz__score">Score: {score}</div>
         </div>
       </div>
-
-      <div className="play-quiz__progress-bar">
-        <div 
-          className="play-quiz__progress-fill" 
-          style={{ width: `${getProgressPercentage()}%` }}
-        ></div>
+      
+      {/* Прогресс бар */}
+      <div className="play-quiz__progress-container">
+        <div className="play-quiz__progress-bar">
+          <div 
+            className="play-quiz__progress-fill" 
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
       </div>
-
-      <div className="play-quiz__content">
-        <div className="play-quiz__question-container">
-          <div className="play-quiz__question-header">
-            <div className="play-quiz__question-number">
-              Вопрос {currentQuestion + 1} из {quizData.questions.length}
-            </div>
-            <div className="play-quiz__timer-container">
-              <div className="play-quiz__timer-text">{timeLeft}</div>
-              <div className="play-quiz__timer-bar">
-                <div 
-                  className="play-quiz__timer-fill" 
-                  style={{ 
-                    width: `${getTimerPercentage()}%`,
-                    backgroundColor: timeLeft < 10 ? '#ff5757' : '#5271ff'
-                  }}
-                ></div>
+      
+      {/* Основной контент */}
+      <div className="play-quiz__main">
+        {!quizCompleted && questions[currentQuestion] && (
+          <>
+            {/* Контейнер вопроса */}
+            <div className="play-quiz__question-container">
+              <div className="play-quiz__question-number">
+                Вопрос {currentQuestion + 1} из {questions.length}
+              </div>
+              <div className="play-quiz__question-text">
+                {questions[currentQuestion].text}
+              </div>
+              
+              {/* Таймер */}
+              <div className="play-quiz__timer-container">
+                <div className="play-quiz__timer-text">{timeLeft}</div>
+                <div className="play-quiz__timer-progress">
+                  <div 
+                    className="play-quiz__timer-fill" 
+                    style={{ 
+                      width: `${(timeLeft / (questions[currentQuestion]?.timeLimit || 20)) * 100}%` 
+                    }}
+                  ></div>
+                </div>
               </div>
             </div>
+            
+            {/* Варианты ответов */}
+            <div className="play-quiz__options">
+              {questions[currentQuestion].options.map((option, index) => (
+                <button 
+                  key={index}
+                  className={`play-quiz__option ${getOptionClass(index)}`}
+                  onClick={() => handleAnswerSelect(index)}
+                  disabled={isAnswered}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        
+        {quizCompleted && (
+          <div className="play-quiz__completed">
+            <h2>Квиз завершен!</h2>
+            <p>Переход на страницу результатов...</p>
           </div>
-
-          <div className="play-quiz__question-text">
-            {getCurrentQuestion().text}
-          </div>
-
-          <div className="play-quiz__options">
-            {getCurrentQuestion().options.map((option, index) => (
-              <button
-                key={index}
-                className={`play-quiz__option ${selectedAnswer === index ? 'play-quiz__option--selected' : ''} ${
-                  showAnswer && index === getCurrentQuestion().correctAnswer ? 'play-quiz__option--correct' : ''
-                } ${
-                  showAnswer && selectedAnswer === index && index !== getCurrentQuestion().correctAnswer ? 'play-quiz__option--incorrect' : ''
-                }`}
-                onClick={() => handleAnswerSelect(index)}
-                disabled={showAnswer}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

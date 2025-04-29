@@ -7,6 +7,10 @@ import AdminPage from './components/AdminPage/AdminPage';
 import QuizPage from './components/QuizPage/QuizPage';
 import LobbyPage from './components/LobbyPage/LobbyPage';
 import GamePage from './components/GamePage/GamePage';
+import PlayQuizPage from './components/PlayQuizPage/PlayQuizPage';
+import ResultsPage from './components/ResultsPage/ResultsPage';
+import NotFoundPage from './components/NotFoundPage/NotFoundPage';
+import ProtectedRouteWithRedirect from './components/ProtectedRoute/ProtectedRouteWithRedirect';
 import { AuthProvider } from './context/AuthContext';
 
 function App() {
@@ -18,11 +22,28 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/join" element={<JoinPage />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/quiz/:id" element={<QuizPage />} />
+            
+            {/* Защищенные маршруты, требующие авторизации */}
+            <Route path="/admin" element={
+              <ProtectedRouteWithRedirect>
+                <AdminPage />
+              </ProtectedRouteWithRedirect>
+            } />
+            
+            {/* Страница для просмотра квиза защищена */}
+            <Route path="/quiz/:id" element={
+              <ProtectedRouteWithRedirect>
+                <QuizPage />
+              </ProtectedRouteWithRedirect>
+            } />
+            
             <Route path="/lobby/:id" element={<LobbyPage />} />
             <Route path="/game/:gameCode" element={<GamePage />} />
-            <Route path="/play/:gameCode" element={<QuizPage />} />
+            <Route path="/play/:gameCode" element={<PlayQuizPage />} />
+            <Route path="/results/:gameCode" element={<ResultsPage />} />
+            
+            {/* Маршрут для 404 страницы - должен быть последним */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
       </Router>

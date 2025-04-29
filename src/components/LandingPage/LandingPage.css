@@ -2,18 +2,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --color-primary: #3a86ff;
-  --color-primary-dark: #2563eb;
-  --color-secondary: #8338ec;
+  --color-primary: #8338ec;
+  --color-primary-dark: #6a2bc4;
+  --color-secondary: #3a86ff;
   --color-accent: #ff006e;
-  --color-background: #0a1128;
-  --color-background-light: #14213d;
+  --color-background: #0a1c44;
+  --color-background-light: #0e2865;
   --color-text: #ffffff;
   --color-text-secondary: #e2e8f0;
   --color-border: rgba(255, 255, 255, 0.1);
+  --color-correct: #06D6A0;
+  --color-incorrect: #FF5E7D;
   --gradient-cosmic: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   --shadow-cosmic: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --planet-glow: 0 0 60px rgba(58, 134, 255, 0.5);
+  --planet-glow: 0 0 60px rgba(131, 56, 236, 0.5);
 }
 
 .landing {
@@ -267,7 +269,7 @@
   margin-top: 2.5rem;
   display: flex;
   justify-content: center;
-  align-items: center;
+        align-items: center;
 }
 
 .landing__hero-image {

@@ -1,15 +1,33 @@
 import React from 'react';
 import './LandingPage.css';
 import logo from '../../assets/logo.png';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const LandingPage = () => {
   const { isAuthenticated, logout, user } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     // Не нужно делать редирект, т.к. мы уже на главной странице
+  };
+
+  // Обработчик для кнопки "Создать викторину"
+  const handleCreateQuiz = () => {
+    if (isAuthenticated) {
+      // Если пользователь авторизован, перенаправляем на страницу каталога/админ
+      navigate('/admin');
+    } else {
+      // Если не авторизован, перенаправляем на страницу авторизации
+      // с параметром redirectTo, чтобы после авторизации вернуть на нужную страницу
+      navigate('/auth', { state: { redirectTo: '/admin' } });
+    }
+  };
+
+  // Обработчик для кнопки регистрации
+  const handleSignup = () => {
+    navigate('/auth', { state: { isLogin: false } });
   };
 
   return (
@@ -52,9 +70,9 @@ const LandingPage = () => {
             </p>
             <div className="landing__cta">
               {isAuthenticated ? (
-                <button className="landing__button landing__button--primary">Создать викторину</button>
+                <button onClick={handleCreateQuiz} className="landing__button landing__button--primary">Создать викторину</button>
               ) : (
-                <Link to="/auth" className="landing__button landing__button--primary">Регистрация</Link>
+                <button onClick={handleSignup} className="landing__button landing__button--primary">Регистрация</button>
               )}
               <Link to="/join" className="landing__button landing__button--secondary">Присоединиться к игре</Link>
             </div>
@@ -77,7 +95,7 @@ const LandingPage = () => {
                 strokeWidth="2"
               />
               
-              {/* Средний круг с пульсацией */}
+              {/* Средний круг с пульсацией
               <circle 
                 cx="200" 
                 cy="200" 
@@ -86,7 +104,7 @@ const LandingPage = () => {
                 stroke="rgba(58, 134, 255, 0.5)" 
                 strokeWidth="3"
                 className="landing__pulse-circle"
-              />
+              /> */}
               
               {/* Внутренний круг - светится */}
               <circle 
@@ -304,7 +322,11 @@ const LandingPage = () => {
             <p className="landing__cta-text">
               Создавайте увлекательные викторины, соревнуйтесь и зарабатывайте вместе с BlinkQuiz!
             </p>
-            <Link to="/join" className="landing__button landing__button--large">Попробовать бесплатно</Link>
+            {isAuthenticated ? (
+              <button onClick={handleCreateQuiz} className="landing__button landing__button--large">Создать викторину</button>
+            ) : (
+              <Link to="/join" className="landing__button landing__button--large">Попробовать бесплатно</Link>
+            )}
           </div>
         </div>
       </section>

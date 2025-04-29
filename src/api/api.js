@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-// Создаем экземпляр axios с базовым URL из переменной окружения
+// Обновление базового URL, включая порт 6000
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:6000/api',
   headers: {
     'Content-Type': 'application/json',
+    'Ngrok-Skip-Browser-Warning': 'true'
   },
 });
 
@@ -28,8 +29,6 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // Можно добавить перенаправление на страницу логина
-      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }

@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './AuthPage.css';
 import logo from '../../assets/logo.png';
 import { useAuth } from '../../context/AuthContext';
 
 const AuthPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  // Получаем параметр redirectTo из location.state, если он есть
+  const redirectTo = location.state?.redirectTo || '/';
+  // Получаем параметр isLogin из location.state, если он есть (по умолчанию true)
+  const initialIsLogin = location.state?.isLogin !== false;
+  
+  const [isLogin, setIsLogin] = useState(initialIsLogin);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,12 +22,12 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const { login, register, isAuthenticated } = useAuth();
 
-  // Если пользователь уже аутентифицирован, перенаправляем на главную
+  // Если пользователь уже аутентифицирован, перенаправляем на нужную страницу
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate(redirectTo);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, redirectTo]);
 
   const toggleForm = () => {
     setIsLogin(!isLogin);
@@ -77,7 +83,10 @@ const AuthPage = () => {
       
       if (result.success) {
         setSuccess(isLogin ? 'Вход выполнен успешно!' : 'Регистрация прошла успешно!');
-        // Перенаправление произойдет автоматически благодаря useEffect
+        // После успешной авторизации перенаправляем на указанную страницу
+        setTimeout(() => {
+          navigate(redirectTo);
+        }, 1000);
       } else {
         setError(result.message);
       }

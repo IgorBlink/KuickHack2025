@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import './LobbyPage.css';
 import { useAuth } from '../../context/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
@@ -8,44 +8,68 @@ import { FaCopy, FaUsers, FaCheck, FaPlay, FaTwitter, FaFacebook, FaWhatsapp, Fa
 import logo from '../../assets/logo.png';
 
 const LobbyPage = () => {
+  const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const { quizId } = useParams();
   // eslint-disable-next-line no-unused-vars
   const { currentUser } = useAuth();
   const [sessionCode, setSessionCode] = useState('');
   const [countdown, setCountdown] = useState(null);
   const [autoStart, setAutoStart] = useState(false);
-  const [participants, setParticipants] = useState([]);
   const [showOverlay, setShowOverlay] = useState(false);
   const [countdownText, setCountdownText] = useState('');
   const [countdownVisible, setCountdownVisible] = useState(false);
   const countdownTimer = useRef(null);
-  const autoStartThreshold = 5; // Автозапуск при 5 участниках
+  const autoStartThreshold = 4; // Изменено: автозапуск при 4 участниках (макс. кол-во)
+  
+  // Получаем данные из навигации
+  const playerName = location.state?.playerName || 'Гость';
+  const isHost = location.state?.isHost || false;
+  const soundEnabled = location.state?.soundEnabled || true;
+  const memesEnabled = location.state?.memesEnabled || true;
+  const voiceoverEnabled = location.state?.voiceoverEnabled || false;
+  
+  const [isReady, setIsReady] = useState(false);
+  const [players, setPlayers] = useState([
+    { id: 1, name: playerName, ready: false, isCurrentPlayer: true, avatarColor: '#ffab2e' }
+  ]);
+  
+  // Массив имен для случайных игроков
+  const randomNames = [
+    'Саша', 'Маша', 'Петя', 'Вася', 'Оля', 'Коля', 'Даша', 'Паша', 
+    'Катя', 'Женя', 'Лена', 'Дима', 'Аня', 'Юля', 'Артем', 'Настя'
+  ];
+  
+  // Массив цветов для аватаров
+  const avatarColors = [
+    '#FF6B6B', '#4ECDC4', '#FFD166', '#6A0572', '#5D5AFF', 
+    '#8A4FFF', '#FF928B', '#01BAEF', '#7A918D', '#F3C623'
+  ];
 
   // Генерация случайного кода сессии
   useEffect(() => {
     generateRandomCode();
   }, []);
 
-  // Симуляция подключения участников
+  // Симуляция подключения участников с задержкой (не больше 4)
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (participants.length < 12 && Math.random() > 0.7) {
-        addParticipant();
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participants]);
+    if (players.length < 4) {
+      const interval = setInterval(() => {
+        if (Math.random() > 0.5) {
+          addRandomPlayer();
+        }
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [players.length]);
 
   // Автозапуск при достижении порога участников
   useEffect(() => {
-    if (autoStart && participants.length >= autoStartThreshold && !countdown) {
+    if (autoStart && players.length >= autoStartThreshold && !countdown) {
       handleStartQuiz();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart, participants]);
+  }, [autoStart, players.length, countdown]);
 
   // Обратный отсчет
   useEffect(() => {
@@ -79,7 +103,6 @@ const LobbyPage = () => {
         }, 1000);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdown]);
 
   const generateRandomCode = () => {
@@ -87,28 +110,48 @@ const LobbyPage = () => {
     setSessionCode(code);
   };
 
-  const addParticipant = () => {
-    const names = [
-      'Саша', 'Маша', 'Петя', 'Вася', 'Оля', 'Коля', 'Даша', 'Паша', 
-      'Катя', 'Женя', 'Лена', 'Дима', 'Аня', 'Юля', 'Артем', 'Настя'
-    ];
+  // Функция для добавления случайного игрока
+  const addRandomPlayer = () => {
+    // Проверяем, что у нас не больше 4 игроков
+    if (players.length >= 4) return;
     
-    const avatarColors = [
-      '#FF6B6B', '#4ECDC4', '#FFD166', '#6A0572', '#5D5AFF', 
-      '#8A4FFF', '#FF928B', '#01BAEF', '#7A918D', '#F3C623'
-    ];
+    // Выбираем случайное имя, которого еще нет в игре
+    let randomName;
+    do {
+      randomName = randomNames[Math.floor(Math.random() * randomNames.length)];
+    } while (players.find(player => player.name === randomName));
     
-    const randomName = names[Math.floor(Math.random() * names.length)];
     const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
     
-    const newParticipant = {
+    const newPlayer = {
       id: Date.now(),
       name: randomName,
       avatarColor: randomColor,
-      joined: new Date()
+      ready: Math.random() > 0.5,
+      isCurrentPlayer: false
     };
     
-    setParticipants([...participants, newParticipant]);
+    setPlayers(prev => [...prev, newPlayer]);
+    
+    // Показываем уведомление о присоединении игрока
+    showPlayerJoinedNotification(randomName);
+  };
+
+  // Функция для отображения уведомления о присоединении игрока
+  const showPlayerJoinedNotification = (playerName) => {
+    // Можно реализовать красивое всплывающее уведомление
+    console.log(`Игрок ${playerName} присоединился к лобби!`);
+    
+    // Пример: добавить временный элемент уведомления на страницу
+    const notification = document.createElement('div');
+    notification.className = 'lobby__notification';
+    notification.textContent = `Игрок ${playerName} присоединился к лобби!`;
+    document.body.appendChild(notification);
+    
+    // Удаляем уведомление через 3 секунды
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 3000);
   };
 
   const handleStartQuiz = () => {
@@ -161,6 +204,80 @@ const LobbyPage = () => {
 
     window.open(shareUrl, '_blank');
   };
+
+  // Обработка готовности игрока
+  const handleReady = () => {
+    setIsReady(!isReady);
+    setPlayers(prev => 
+      prev.map(player => 
+        player.isCurrentPlayer ? { ...player, ready: !isReady } : player
+      )
+    );
+  };
+
+  // Обработка запуска игры (только для хоста)
+  const handleStartGame = () => {
+    // В реальной логике нужно отправить сигнал на сервер
+    setCountdown(5);
+    
+    // Обратный отсчет перед началом игры
+    const intervalId = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(intervalId);
+          // Перенаправление на страницу игры
+          navigate(`/play/${id}`);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Отображение для неадминов (игроков)
+  const renderPlayerMode = () => (
+    <div className="lobby__player-mode">
+      <div className="lobby__waiting-message">
+        Ожидание начала игры...
+      </div>
+      
+      <div className="lobby__player-actions">
+        <button 
+          className={`lobby__ready-button ${isReady ? 'lobby__ready-button--active' : ''}`}
+          onClick={handleReady}
+        >
+          {isReady ? 'Готов ✓' : 'Я готов!'}
+        </button>
+      </div>
+      
+      {countdown && (
+        <div className="lobby__countdown">
+          Игра начнется через {countdown}...
+        </div>
+      )}
+    </div>
+  );
+
+  // Отображение для админа (хоста)
+  const renderHostMode = () => (
+    <div className="lobby__host-mode">
+      <div className="lobby__host-controls">
+        <button 
+          className="lobby__start-button"
+          onClick={handleStartGame}
+          disabled={!players.every(player => player.ready)}
+        >
+          Начать игру
+        </button>
+      </div>
+      
+      {countdown && (
+        <div className="lobby__countdown">
+          Игра начнется через {countdown}...
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="lobby">
@@ -266,9 +383,51 @@ const LobbyPage = () => {
             </div>
           </div>
           
+          {/* Обновленная секция ожидания участников */}
           <div className="lobby__waiting">
             <div className="lobby__waiting-icon"></div>
             <div className="lobby__waiting-text">Ждем участников...</div>
+            {/* <div className="lobby__players-count">
+              {players.length} из 4 участников в лобби
+            </div> */}
+            
+            {/* Панель игроков */}
+            <div className="lobby__players-panel">
+              {players.map((player) => (
+                <div key={player.id} 
+                  className={`lobby__player-card ${player.ready ? 'lobby__player-card--ready' : ''} ${player.isCurrentPlayer ? 'lobby__player-card--current' : ''}`}
+                >
+                  <div className="lobby__player-avatar" style={{ backgroundColor: player.avatarColor }}>
+                    {player.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="lobby__player-details">
+                    <div className="lobby__player-name">
+                      {player.name} {player.isCurrentPlayer && '(вы)'}
+                    </div>
+                    {/* <div className={`lobby__player-status ${player.ready ? 'lobby__player-status--ready' : ''}`}>
+                      {player.ready ? 'Готов' : 'Не готов'}
+                    </div> */}
+                  </div>
+                </div>
+              ))}
+              
+              {/* Добавляем пустые слоты для игроков */}
+              {Array.from({ length: Math.max(0, 4 - players.length) }).map((_, index) => (
+                <div key={`empty-${index}`} className="lobby__player-card lobby__player-card--empty">
+                  <div className="lobby__player-avatar lobby__player-avatar--empty">
+                    ?
+                  </div>
+                  <div className="lobby__player-details">
+                    <div className="lobby__player-name lobby__player-name--empty">
+                      Ожидание игрока...
+                    </div>
+                    <div className="lobby__player-status">
+                      Не подключен
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -285,6 +444,33 @@ const LobbyPage = () => {
           </div>
         </div>
       )}
+
+      {/* Стили для уведомлений */}
+      <style jsx="true">{`
+        .lobby__notification {
+          position: fixed;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(131, 56, 236, 0.9);
+          color: white;
+          padding: 12px 20px;
+          border-radius: 50px;
+          z-index: 1000;
+          animation: slideUp 0.3s ease-out, fadeOut 0.5s ease-out 2.5s forwards;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes slideUp {
+          from { transform: translate(-50%, 20px); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };
