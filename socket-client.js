@@ -2,22 +2,21 @@ const { io } = require('socket.io-client');
 
 // ==================== НАСТРОЙКИ ====================
 const SERVER_URL = 'http://localhost:6000'; // Адрес сервера
-const LOBBY_CODE = 'f2abf3'; // Код твоего лобби
-const HOST_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MGZmMjk4NzVjNzc0MWQwODQzNTUyYiIsInVzZXJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3NDU4NzU2MDksImV4cCI6MTc0NjQ4MDQwOX0.LqmdpNMgIuYbmXZcqcOSjjiIrOceIU6xX-gd02Q1dlY'; // Токен хоста (обрежь для безопасности)
+const LOBBY_CODE = '29ab11'; // Код лобби
+const HOST_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MGZmMjk4NzVjNzc0MWQwODQzNTUyYiIsInVzZXJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3NDU4NzU2MDksImV4cCI6MTc0NjQ4MDQwOX0.LqmdpNMgIuYbmXZcqcOSjjiIrOceIU6xX-gd02Q1dlY'; // Токен хоста
 
-// Игроки
 const players = [
-  { nickname: 'HostPlayer', walletAddress: 'EQ_Host_Wallet_Address', isHost: true },
-  { nickname: 'PlayerTwo', walletAddress: 'EQ_PlayerTwo_Wallet', isHost: false },
-  { nickname: 'PlayerThree', walletAddress: 'EQ_PlayerThree_Wallet', isHost: false }
+  { nickname: 'HostPlayer', walletAddress: 'EQ_Host_Wallet_Address' },
+  { nickname: 'PlayerTwo', walletAddress: 'EQ_PlayerTwo_Wallet' },
+  { nickname: 'PlayerThree', walletAddress: 'EQ_PlayerThree_Wallet' }
 ];
 
 const sockets = [];
-let isQuizStarted = false;
+let isHostStarted = false;
 
 // ==================== КЛИЕНТСКАЯ ЛОГИКА ====================
 
-players.forEach((player) => {
+players.forEach((player, index) => {
   const socket = io(SERVER_URL, { transports: ['websocket'] });
   sockets.push(socket);
 
@@ -34,15 +33,16 @@ players.forEach((player) => {
   socket.on('joinedLobby', (data) => {
     console.log(`🎉 ${player.nickname} joined lobby`);
 
-    if (player.isHost && !isQuizStarted) {
+    // Только первый игрок (условно хост) стартует квиз
+    if (index === 0 && !isHostStarted) {
       setTimeout(() => {
         console.log(`🚀 ${player.nickname} starting the quiz`);
         socket.emit('startQuiz', {
           lobbyCode: LOBBY_CODE,
           token: HOST_TOKEN
         });
-        isQuizStarted = true;
-      }, 3000); // Небольшая задержка чтобы все успели зайти
+        isHostStarted = true;
+      }, 3000);
     }
   });
 
@@ -53,7 +53,6 @@ players.forEach((player) => {
   socket.on('newQuestion', (question) => {
     console.log(`🧠 ${player.nickname} received question: ${question.questionText}`);
 
-    // Определяем правильный ответ
     let selectedAnswers = [];
 
     if (question.questionText.includes('HTTP')) {
@@ -67,10 +66,10 @@ players.forEach((player) => {
     } else if (question.questionText.includes('git clone')) {
       selectedAnswers = [1];
     } else {
-      selectedAnswers = [0]; // На всякий случай
+      selectedAnswers = [0];
     }
 
-    const randomDelay = Math.floor(Math.random() * 2000) + 3000; // Отвечаем через 3-5 секунд
+    const randomDelay = Math.floor(Math.random() * 2000) + 3000;
 
     setTimeout(() => {
       console.log(`✍️ ${player.nickname} sending answer: ${selectedAnswers}`);
