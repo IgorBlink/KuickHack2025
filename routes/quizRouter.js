@@ -47,6 +47,13 @@ router.post('/ai', async (req, res) => {
         if (!topic) {
             return res.status(400).json({ success: false, message: 'Topic is required' });
         }
+        if (!quantity) {
+            return res.status(400).json({ success: false, message: 'Quantity is required' });
+        }
+
+        if (quantity < 2) {
+            return res.status(400).json({ success: false, message: 'The quantity must be more than 5' });
+        }
 
         const safeQuantity = Math.min(Math.max(parseInt(quantity), 1), 20);
 

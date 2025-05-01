@@ -2,7 +2,7 @@ const { Server } = require('socket.io');
 const jwt = require('./utils/jwt');
 const Lobby = require('./models/Lobby');
 
-const questionTimers = new Map(); // ⏱ хранит таймеры по lobbyCode
+const questionTimers = new Map(); // хранит таймеры по lobbyCode
 
 function setupSocket(server) {
   const io = new Server(server, {
@@ -104,28 +104,34 @@ function setupSocket(server) {
         if (alreadyAnswered) return;
 
         const correctAnswers = question.correctAnswers
-          .map((isCorrect, idx) => (isCorrect ? idx : null))
+          .map((isCorrect, idx) => isCorrect ? idx : null)
           .filter(idx => idx !== null)
           .sort();
 
         const playerAnswers = [...selectedAnswers].sort();
-        const isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(playerAnswers);
 
-        if (isCorrect) {
+        const fullMatch = JSON.stringify(correctAnswers) === JSON.stringify(playerAnswers);
+        const partialMatch = playerAnswers.length > 0 && playerAnswers.every(ans => correctAnswers.includes(ans));
+
+        const baseReward = lobby.baseReward || 300;
+        const isCorrect = fullMatch;
+
+        console.log(`[DEBUG] ${nickname} | correct: ${JSON.stringify(correctAnswers)} | selected: ${JSON.stringify(playerAnswers)} | isCorrect: ${isCorrect} | partial: ${partialMatch}`);
+
+        if (fullMatch) {
           player.streak += 1;
-          const reward = Math.floor(300 * Math.pow(1.1, player.streak - 1));
+          const reward = Math.floor(baseReward * Math.pow(1.1, player.streak - 1));
           player.score += reward;
+        } else if (partialMatch) {
+          player.streak = 0;
+          player.score += Math.floor(baseReward / 2);
         } else {
           player.streak = 0;
         }
 
         player.currentQuestion = currentIndex + 1;
         player.lastAnsweredQuestionIndex = currentIndex;
-        player.answers.push({
-          questionIndex: currentIndex,
-          selectedAnswers,
-          isCorrect
-        });
+        player.answers.push({ questionIndex: currentIndex, selectedAnswers, isCorrect });
 
         lobby.markModified(`players.${playerIndex}`);
         await lobby.save();
@@ -135,28 +141,18 @@ function setupSocket(server) {
         const updatedLobby = await Lobby.findOne({ code: lobbyCode });
         const answeringPlayers = updatedLobby.players.filter(p => !p.isHost);
 
-        console.log(`📊 Проверка: ответили ли все на вопрос ${currentIndex}`);
-        answeringPlayers.forEach(p => {
-          const answered = p.answers.some(a => a.questionIndex === currentIndex);
-          console.log(`- ${p.nickname}: ${answered ? '✅' : '❌'}`);
-        });
-
         const stillAnswering = answeringPlayers.some(
           p => !p.answers.some(a => a.questionIndex === currentIndex)
         );
 
         if (!stillAnswering) {
-          // ⏱ Очистить таймер, если все ответили
           if (questionTimers.has(lobbyCode)) {
             clearTimeout(questionTimers.get(lobbyCode));
             questionTimers.delete(lobbyCode);
             console.log(`✅ Все ответили. Таймер остановлен [${lobbyCode}]`);
           }
 
-          console.log('✅ Все игроки ответили. Отправляем следующий вопрос...');
           await sendNextQuestion(io, lobbyCode);
-        } else {
-          console.log('⏳ Ждём остальных игроков...');
         }
       } catch (error) {
         console.error('❌ Send Answer Error:', error.message);
@@ -183,40 +179,23 @@ async function sendNextQuestion(io, lobbyCode) {
     if (lobby.currentQuestionIndex >= lobby.quiz.questions.length) {
       lobby.quizEnded = true;
 
-      const results = lobby.players
-        .map(player => ({
-          nickname: player.nickname,
-          score: player.score,
-          streak: player.streak
-        }))
-        .sort((a, b) => b.score - a.score);
+      const results = lobby.players.map(p => ({
+        nickname: p.nickname,
+        score: p.score,
+        streak: p.streak
+      })).sort((a, b) => b.score - a.score);
 
       io.to(lobbyCode).emit('quizEnded', { results });
-
       lobby.sendingQuestion = false;
       await lobby.save();
       return;
     }
 
     const currentIndex = lobby.currentQuestionIndex;
-
-    lobby.players.forEach((player, i) => {
-      const hasAnswered = player.answers.some(a => a.questionIndex === currentIndex);
-      if (!hasAnswered && !player.isHost) {
-        player.streak = 0;
-        player.answers.push({
-          questionIndex: currentIndex,
-          selectedAnswers: [],
-          isCorrect: false
-        });
-        lobby.markModified(`players.${i}`);
-      }
-    });
-
     const question = lobby.quiz.questions[currentIndex];
 
     io.to(lobbyCode).emit('newQuestion', {
-      index: lobby.currentQuestionIndex,
+      index: currentIndex,
       questionText: question.questionText,
       options: question.options
     });
@@ -225,20 +204,37 @@ async function sendNextQuestion(io, lobbyCode) {
     lobby.sendingQuestion = false;
     await lobby.save();
 
-    // ⏱ Устанавливаем таймер на 30 сек для следующего вопроса
     if (questionTimers.has(lobbyCode)) {
       clearTimeout(questionTimers.get(lobbyCode));
     }
 
     const timer = setTimeout(async () => {
-      console.log(`⏰ Время вышло. Переход к следующему вопросу [${lobbyCode}]`);
+      console.log(`⏰ Время вышло. Засчитываем всем "не ответил" [${lobbyCode}]`);
+
+      const expiredLobby = await Lobby.findOne({ code: lobbyCode }).populate('quiz');
+      if (!expiredLobby) return;
+
+      const questionIndex = expiredLobby.currentQuestionIndex - 1;
+      expiredLobby.players.forEach((player, i) => {
+        if (!player.isHost && !player.answers.some(a => a.questionIndex === questionIndex)) {
+          player.streak = 0;
+          player.answers.push({
+            questionIndex,
+            selectedAnswers: [],
+            isCorrect: false
+          });
+          expiredLobby.markModified(`players.${i}`);
+          console.log(`[TIMEOUT] ${player.nickname} не ответил на ${questionIndex}. Засчитано как неверный.`);
+        }
+      });
+
+      await expiredLobby.save();
       await sendNextQuestion(io, lobbyCode);
     }, 30000);
 
     questionTimers.set(lobbyCode, timer);
   } catch (error) {
     console.error('Send Next Question Error:', error.message);
-
     if (lobby) {
       lobby.sendingQuestion = false;
       await lobby.save();
