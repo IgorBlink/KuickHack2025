@@ -87,7 +87,7 @@ function setupSocket(server) {
         const player = lobby.players[playerIndex];
     
         const alreadyAnswered = player.answers.some(a => a.questionIndex === currentIndex);
-        if (alreadyAnswered) return; // не даём отвечать дважды
+        if (alreadyAnswered) return;
     
         const correctAnswers = question.correctAnswers
           .map((isCorrect, idx) => (isCorrect ? idx : null))
@@ -105,7 +105,7 @@ function setupSocket(server) {
           player.streak = 0;
         }
     
-        player.currentQuestion = lobby.currentQuestionIndex;
+        player.currentQuestion = currentIndex + 1;
         player.lastAnsweredQuestionIndex = currentIndex;
         player.answers.push({
           questionIndex: currentIndex,
@@ -113,21 +113,34 @@ function setupSocket(server) {
           isCorrect
         });
     
-        lobby.markModified(`players.${playerIndex}`); // обязательно!
+        lobby.markModified(`players.${playerIndex}`);
         await lobby.save();
     
         io.to(lobbyCode).emit('playerAnswered', { nickname });
     
         const updatedLobby = await Lobby.findOne({ code: lobbyCode });
-        const stillAnswering = updatedLobby.players.some(
-          p => p.currentQuestion < updatedLobby.currentQuestionIndex
+    
+        // ⛔ ИСКЛЮЧАЕМ хоста из подсчёта:
+        const answeringPlayers = updatedLobby.players.filter(p => p.nickname !== 'Host');
+    
+        console.log(`📊 Проверка: ответили ли все на вопрос ${currentIndex}`);
+        answeringPlayers.forEach(p => {
+          const answered = p.answers.some(a => a.questionIndex === currentIndex);
+          console.log(`- ${p.nickname}: ${answered ? '✅' : '❌'}`);
+        });
+    
+        const stillAnswering = answeringPlayers.some(
+          p => !p.answers.some(a => a.questionIndex === currentIndex)
         );
     
         if (!stillAnswering) {
+          console.log('✅ Все игроки ответили. Отправляем следующий вопрос...');
           await sendNextQuestion(io, lobbyCode);
+        } else {
+          console.log('⏳ Ждём остальных игроков...');
         }
       } catch (error) {
-        console.error('Send Answer Error:', error.message);
+        console.error('❌ Send Answer Error:', error.message);
         socket.emit('errorMessage', { message: 'Failed to submit answer' });
       }
     });    
@@ -139,30 +152,53 @@ function setupSocket(server) {
 }
 
 async function sendNextQuestion(io, lobbyCode) {
-  const lobby = await Lobby.findOne({ code: lobbyCode }).populate('quiz');
-  if (!lobby || lobby.quizEnded) return;
+  let lobby = null;
 
-  if (lobby.currentQuestionIndex >= lobby.quiz.questions.length) {
-    lobby.quizEnded = true;
+  try {
+    lobby = await Lobby.findOne({ code: lobbyCode }).populate('quiz');
+    if (!lobby || lobby.quizEnded || lobby.sendingQuestion) return;
+
+    lobby.sendingQuestion = true;
     await lobby.save();
 
-    const results = lobby.players
-      .map(p => ({ nickname: p.nickname, score: p.score, streak: p.streak }))
-      .sort((a, b) => b.score - a.score);
+    if (lobby.currentQuestionIndex >= lobby.quiz.questions.length) {
+      lobby.quizEnded = true;
 
-    io.to(lobbyCode).emit('quizEnded', { results });
-    return;
+      const results = lobby.players
+        .map(player => ({
+          nickname: player.nickname,
+          score: player.score,
+          streak: player.streak
+        }))
+        .sort((a, b) => b.score - a.score);
+
+      io.to(lobbyCode).emit('quizEnded', { results });
+
+      lobby.sendingQuestion = false;
+      await lobby.save();
+      return;
+    }
+
+    const question = lobby.quiz.questions[lobby.currentQuestionIndex];
+
+    io.to(lobbyCode).emit('newQuestion', {
+      index: lobby.currentQuestionIndex,
+      questionText: question.questionText,
+      options: question.options
+    });
+
+    lobby.currentQuestionIndex += 1;
+    lobby.sendingQuestion = false;
+    await lobby.save();
+  } catch (error) {
+    console.error('Send Next Question Error:', error.message);
+
+    // 🛑 Если ошибка — сбрасываем вручную, иначе всё зависнет
+    if (lobby) {
+      lobby.sendingQuestion = false;
+      await lobby.save();
+    }
   }
-
-  const q = lobby.quiz.questions[lobby.currentQuestionIndex];
-  io.to(lobbyCode).emit('newQuestion', {
-    index: lobby.currentQuestionIndex,
-    questionText: q.questionText,
-    options: q.options
-  });
-
-  lobby.currentQuestionIndex += 1;
-  await lobby.save();
 }
 
 module.exports = { setupSocket };
