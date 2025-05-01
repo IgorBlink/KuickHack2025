@@ -2,6 +2,8 @@ const { Server } = require('socket.io');
 const jwt = require('./utils/jwt');
 const Lobby = require('./models/Lobby');
 
+const questionTimers = new Map(); // ⏱ хранит таймеры по lobbyCode
+
 function setupSocket(server) {
   const io = new Server(server, {
     cors: { origin: '*' }
@@ -15,14 +17,14 @@ function setupSocket(server) {
         if (!lobbyCode || !nickname) {
           return socket.emit('errorMessage', { message: 'Invalid join data' });
         }
-    
+
         const lobby = await Lobby.findOne({ code: lobbyCode }).populate('quiz');
         if (!lobby) return socket.emit('errorMessage', { message: 'Lobby not found' });
-    
+
         if (lobby.players.find(p => p.nickname === nickname)) {
           return socket.emit('errorMessage', { message: 'Nickname already taken' });
         }
-    
+
         let isHost = false;
         if (token) {
           try {
@@ -34,7 +36,7 @@ function setupSocket(server) {
             console.warn('⚠️ Invalid token in joinLobby:', err.message);
           }
         }
-    
+
         lobby.players.push({
           nickname,
           isHost,
@@ -44,17 +46,17 @@ function setupSocket(server) {
           lastAnsweredQuestionIndex: -1,
           answers: []
         });
-    
+
         await lobby.save();
         socket.join(lobbyCode);
-    
+
         socket.emit('joinedLobby', { lobbyCode: lobby.code });
         io.to(lobbyCode).emit('playerJoined', { nickname });
       } catch (error) {
         console.error('Join Lobby Error:', error.message);
         socket.emit('errorMessage', { message: 'Failed to join lobby' });
       }
-    });    
+    });
 
     socket.on('startQuiz', async ({ lobbyCode, token }) => {
       try {
@@ -85,18 +87,18 @@ function setupSocket(server) {
         if (!lobby || !lobby.started) {
           return socket.emit('errorMessage', { message: 'Lobby not found or quiz not started' });
         }
-    
+
         const currentIndex = lobby.currentQuestionIndex - 1;
         const question = lobby.quiz.questions[currentIndex];
         if (!question) {
           return socket.emit('errorMessage', { message: 'No question found' });
         }
-    
+
         const playerIndex = lobby.players.findIndex(p => p.nickname === nickname);
         if (playerIndex === -1) {
           return socket.emit('errorMessage', { message: 'Player not found in lobby' });
         }
-    
+
         const player = lobby.players[playerIndex];
         const alreadyAnswered = player.answers.some(a => a.questionIndex === currentIndex);
         if (alreadyAnswered) return;
@@ -105,10 +107,10 @@ function setupSocket(server) {
           .map((isCorrect, idx) => (isCorrect ? idx : null))
           .filter(idx => idx !== null)
           .sort();
-    
+
         const playerAnswers = [...selectedAnswers].sort();
         const isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(playerAnswers);
-    
+
         if (isCorrect) {
           player.streak += 1;
           const reward = Math.floor(300 * Math.pow(1.1, player.streak - 1));
@@ -116,7 +118,7 @@ function setupSocket(server) {
         } else {
           player.streak = 0;
         }
-    
+
         player.currentQuestion = currentIndex + 1;
         player.lastAnsweredQuestionIndex = currentIndex;
         player.answers.push({
@@ -124,27 +126,33 @@ function setupSocket(server) {
           selectedAnswers,
           isCorrect
         });
-    
+
         lobby.markModified(`players.${playerIndex}`);
         await lobby.save();
-    
+
         io.to(lobbyCode).emit('playerAnswered', { nickname });
-    
+
         const updatedLobby = await Lobby.findOne({ code: lobbyCode });
-    
         const answeringPlayers = updatedLobby.players.filter(p => !p.isHost);
-    
+
         console.log(`📊 Проверка: ответили ли все на вопрос ${currentIndex}`);
         answeringPlayers.forEach(p => {
           const answered = p.answers.some(a => a.questionIndex === currentIndex);
           console.log(`- ${p.nickname}: ${answered ? '✅' : '❌'}`);
         });
-    
+
         const stillAnswering = answeringPlayers.some(
           p => !p.answers.some(a => a.questionIndex === currentIndex)
         );
-    
+
         if (!stillAnswering) {
+          // ⏱ Очистить таймер, если все ответили
+          if (questionTimers.has(lobbyCode)) {
+            clearTimeout(questionTimers.get(lobbyCode));
+            questionTimers.delete(lobbyCode);
+            console.log(`✅ Все ответили. Таймер остановлен [${lobbyCode}]`);
+          }
+
           console.log('✅ Все игроки ответили. Отправляем следующий вопрос...');
           await sendNextQuestion(io, lobbyCode);
         } else {
@@ -154,7 +162,7 @@ function setupSocket(server) {
         console.error('❌ Send Answer Error:', error.message);
         socket.emit('errorMessage', { message: 'Failed to submit answer' });
       }
-    });     
+    });
 
     socket.on('disconnect', () => {
       console.log('🔌 Client disconnected:', socket.id);
@@ -190,7 +198,22 @@ async function sendNextQuestion(io, lobbyCode) {
       return;
     }
 
-    const question = lobby.quiz.questions[lobby.currentQuestionIndex];
+    const currentIndex = lobby.currentQuestionIndex;
+
+    lobby.players.forEach((player, i) => {
+      const hasAnswered = player.answers.some(a => a.questionIndex === currentIndex);
+      if (!hasAnswered && !player.isHost) {
+        player.streak = 0;
+        player.answers.push({
+          questionIndex: currentIndex,
+          selectedAnswers: [],
+          isCorrect: false
+        });
+        lobby.markModified(`players.${i}`);
+      }
+    });
+
+    const question = lobby.quiz.questions[currentIndex];
 
     io.to(lobbyCode).emit('newQuestion', {
       index: lobby.currentQuestionIndex,
@@ -201,10 +224,21 @@ async function sendNextQuestion(io, lobbyCode) {
     lobby.currentQuestionIndex += 1;
     lobby.sendingQuestion = false;
     await lobby.save();
+
+    // ⏱ Устанавливаем таймер на 30 сек для следующего вопроса
+    if (questionTimers.has(lobbyCode)) {
+      clearTimeout(questionTimers.get(lobbyCode));
+    }
+
+    const timer = setTimeout(async () => {
+      console.log(`⏰ Время вышло. Переход к следующему вопросу [${lobbyCode}]`);
+      await sendNextQuestion(io, lobbyCode);
+    }, 30000);
+
+    questionTimers.set(lobbyCode, timer);
   } catch (error) {
     console.error('Send Next Question Error:', error.message);
 
-    // 🛑 Если ошибка — сбрасываем вручную, иначе всё зависнет
     if (lobby) {
       lobby.sendingQuestion = false;
       await lobby.save();
