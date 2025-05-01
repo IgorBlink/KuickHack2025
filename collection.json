@@ -74,6 +74,32 @@
           }
         },
         {
+          "name": "Generate AI Quiz",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "http://localhost:6000/api/quiz/ai",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6000",
+              "path": ["api", "quiz", "ai"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topic\": \"JavaScript\",\n  \"quantity\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },        
+        {
           "name": "Get All Quizzes",
           "request": {
             "method": "GET",

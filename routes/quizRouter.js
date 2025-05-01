@@ -99,8 +99,6 @@ Do not include any text except the JSON.`;
             }
         };
 
-        console.log(req.user);
-
         const quiz = new Quiz({
             title: `AI Quiz: ${topic}`,
             description: `Automatically generated on topic "${topic}"`,

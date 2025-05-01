@@ -10,38 +10,51 @@ function setupSocket(server) {
   io.on('connection', (socket) => {
     console.log('✅ New client connected:', socket.id);
 
-    socket.on('joinLobby', async ({ lobbyCode, nickname }) => {
+    socket.on('joinLobby', async ({ lobbyCode, nickname, token }) => {
       try {
         if (!lobbyCode || !nickname) {
           return socket.emit('errorMessage', { message: 'Invalid join data' });
         }
-
+    
         const lobby = await Lobby.findOne({ code: lobbyCode }).populate('quiz');
         if (!lobby) return socket.emit('errorMessage', { message: 'Lobby not found' });
-
+    
         if (lobby.players.find(p => p.nickname === nickname)) {
           return socket.emit('errorMessage', { message: 'Nickname already taken' });
         }
-
+    
+        let isHost = false;
+        if (token) {
+          try {
+            const payload = await jwt.verifyToken(token.replace('Bearer ', ''));
+            if (payload.id === lobby.host.toString()) {
+              isHost = true;
+            }
+          } catch (err) {
+            console.warn('⚠️ Invalid token in joinLobby:', err.message);
+          }
+        }
+    
         lobby.players.push({
           nickname,
+          isHost,
           score: 0,
           streak: 0,
           currentQuestion: 0,
           lastAnsweredQuestionIndex: -1,
           answers: []
         });
-
+    
         await lobby.save();
         socket.join(lobbyCode);
-
+    
         socket.emit('joinedLobby', { lobbyCode: lobby.code });
         io.to(lobbyCode).emit('playerJoined', { nickname });
       } catch (error) {
         console.error('Join Lobby Error:', error.message);
         socket.emit('errorMessage', { message: 'Failed to join lobby' });
       }
-    });
+    });    
 
     socket.on('startQuiz', async ({ lobbyCode, token }) => {
       try {
@@ -85,10 +98,9 @@ function setupSocket(server) {
         }
     
         const player = lobby.players[playerIndex];
-    
         const alreadyAnswered = player.answers.some(a => a.questionIndex === currentIndex);
         if (alreadyAnswered) return;
-    
+
         const correctAnswers = question.correctAnswers
           .map((isCorrect, idx) => (isCorrect ? idx : null))
           .filter(idx => idx !== null)
@@ -120,8 +132,7 @@ function setupSocket(server) {
     
         const updatedLobby = await Lobby.findOne({ code: lobbyCode });
     
-        // ⛔ ИСКЛЮЧАЕМ хоста из подсчёта:
-        const answeringPlayers = updatedLobby.players.filter(p => p.nickname !== 'Host');
+        const answeringPlayers = updatedLobby.players.filter(p => !p.isHost);
     
         console.log(`📊 Проверка: ответили ли все на вопрос ${currentIndex}`);
         answeringPlayers.forEach(p => {
@@ -143,7 +154,7 @@ function setupSocket(server) {
         console.error('❌ Send Answer Error:', error.message);
         socket.emit('errorMessage', { message: 'Failed to submit answer' });
       }
-    });    
+    });     
 
     socket.on('disconnect', () => {
       console.log('🔌 Client disconnected:', socket.id);
