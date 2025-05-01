@@ -1,20 +1,19 @@
 const { io } = require('socket.io-client');
 
-// ==================== НАСТРОЙКИ ====================
-const SERVER_URL = 'http://localhost:6000'; // Адрес сервера
-const LOBBY_CODE = '29ab11'; // Код лобби
-const HOST_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MGZmMjk4NzVjNzc0MWQwODQzNTUyYiIsInVzZXJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3NDU4NzU2MDksImV4cCI6MTc0NjQ4MDQwOX0.LqmdpNMgIuYbmXZcqcOSjjiIrOceIU6xX-gd02Q1dlY'; // Токен хоста
+// ===== НАСТРОЙКИ =====
+const SERVER_URL = 'http://localhost:6000';
+const LOBBY_CODE = 'c96de3'; // замените на актуальный код лобби
+const HOST_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MGZmMjk4NzVjNzc0MWQwODQzNTUyYiIsInVzZXJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3NDYwODk2MjMsImV4cCI6MTc0NjY5NDQyM30.cDBqCkpzXaXC9gwGxvbG_GnXxuJv8bCacpmptmFk7K0'; // замените на актуальный токен
 
 const players = [
-  { nickname: 'HostPlayer', walletAddress: 'EQ_Host_Wallet_Address' },
-  { nickname: 'PlayerTwo', walletAddress: 'EQ_PlayerTwo_Wallet' },
-  { nickname: 'PlayerThree', walletAddress: 'EQ_PlayerThree_Wallet' }
+  { nickname: 'PlayerOne' },
+  { nickname: 'PlayerTwo' },
+  { nickname: 'PlayerThree' }
 ];
 
 const sockets = [];
-let isHostStarted = false;
-
-// ==================== КЛИЕНТСКАЯ ЛОГИКА ====================
+let isQuizStarted = false;
+let hasQuizEnded = false;
 
 players.forEach((player, index) => {
   const socket = io(SERVER_URL, { transports: ['websocket'] });
@@ -22,26 +21,23 @@ players.forEach((player, index) => {
 
   socket.on('connect', () => {
     console.log(`✅ ${player.nickname} connected`);
-
     socket.emit('joinLobby', {
       lobbyCode: LOBBY_CODE,
-      nickname: player.nickname,
-      walletAddress: player.walletAddress
+      nickname: player.nickname
     });
   });
 
-  socket.on('joinedLobby', (data) => {
+  socket.on('joinedLobby', () => {
     console.log(`🎉 ${player.nickname} joined lobby`);
 
-    // Только первый игрок (условно хост) стартует квиз
-    if (index === 0 && !isHostStarted) {
+    if (index === 0 && !isQuizStarted) {
       setTimeout(() => {
         console.log(`🚀 ${player.nickname} starting the quiz`);
         socket.emit('startQuiz', {
           lobbyCode: LOBBY_CODE,
           token: HOST_TOKEN
         });
-        isHostStarted = true;
+        isQuizStarted = true;
       }, 3000);
     }
   });
@@ -53,32 +49,17 @@ players.forEach((player, index) => {
   socket.on('newQuestion', (question) => {
     console.log(`🧠 ${player.nickname} received question: ${question.questionText}`);
 
-    let selectedAnswers = [];
-
-    if (question.questionText.includes('HTTP')) {
-      selectedAnswers = [0];
-    } else if (question.questionText.includes('стилизации веб-страниц')) {
-      selectedAnswers = [1];
-    } else if (question.questionText.includes('IP-адрес')) {
-      selectedAnswers = [2];
-    } else if (question.questionText.includes("'true' в языке JavaScript")) {
-      selectedAnswers = [1];
-    } else if (question.questionText.includes('git clone')) {
-      selectedAnswers = [1];
-    } else {
-      selectedAnswers = [0];
-    }
-
-    const randomDelay = Math.floor(Math.random() * 2000) + 3000;
+    const totalOptions = question.options.length;
+    const selectedAnswers = [Math.floor(Math.random() * totalOptions)];
 
     setTimeout(() => {
-      console.log(`✍️ ${player.nickname} sending answer: ${selectedAnswers}`);
+      console.log(`✍️ ${player.nickname} answering: ${selectedAnswers}`);
       socket.emit('sendAnswer', {
         lobbyCode: LOBBY_CODE,
         nickname: player.nickname,
-        selectedAnswers: selectedAnswers
+        selectedAnswers
       });
-    }, randomDelay);
+    }, Math.floor(Math.random() * 2000) + 1000);
   });
 
   socket.on('playerAnswered', (data) => {
@@ -86,12 +67,13 @@ players.forEach((player, index) => {
   });
 
   socket.on('quizEnded', (data) => {
+    if (hasQuizEnded) return;
+    hasQuizEnded = true;
+  
     console.log(`🏁 Quiz ended for ${player.nickname}`);
-    console.log('🏆 Final results:', data.results);
-
-    setTimeout(() => {
-      socket.disconnect();
-    }, 2000);
+    if (index === 0) console.log('🏆 Results:', data.results);
+  
+    setTimeout(() => socket.disconnect(), 2000);
   });
 
   socket.on('errorMessage', (error) => {

@@ -97,13 +97,15 @@ Do not include any text except the JSON.`;
             ) {
                 return res.status(400).json({ success: false, message: 'Invalid question format', question: q });
             }
-        }
+        };
+
+        console.log(req.user);
 
         const quiz = new Quiz({
             title: `AI Quiz: ${topic}`,
             description: `Automatically generated on topic "${topic}"`,
             questions,
-            createdBy: req.user.id
+            createdBy: req.user.userId
         });
 
         await quiz.save();
