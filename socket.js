@@ -230,7 +230,7 @@ async function sendNextQuestion(io, lobbyCode) {
 
       await expiredLobby.save();
       await sendNextQuestion(io, lobbyCode);
-    }, 30000);
+    }, 5000);
 
     questionTimers.set(lobbyCode, timer);
   } catch (error) {

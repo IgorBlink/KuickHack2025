@@ -1,8 +1,15 @@
 const { io } = require('socket.io-client');
 
 const SERVER_URL = 'http://localhost:6000';
-const LOBBY_CODE = '367c1b'; // Заменить на актуальный код
-const TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MGZmMjk4NzVjNzc0MWQwODQzNTUyYiIsInVzZXJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3NDYxMjU1NzIsImV4cCI6MTc0NjczMDM3Mn0.I4v8Xcq7bGq0mz4YjTXzBnK6UraZhpwbKR48uBvmHj0'; // Заменить на токен хоста
+const LOBBY_CODE = '132e5a'; // Заменить на актуальный код
+const TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MGZmMjk4NzVjNzc0MWQwODQzNTUyYiIsInVzZXJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3NDYxNjMxNTcsImV4cCI6MTc0Njc2Nzk1N30.NPBEyJN36NfZAUOekkpxp3Jb6jbD2YGuuGCveuXtk68'; // Заменить на токен хоста
+
+function getRandomAnswers(optionsLength, maxSelect = 1) {
+  const indices = Array.from({ length: optionsLength }, (_, i) => i);
+  const count = Math.min(maxSelect, optionsLength);
+  const shuffled = indices.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count).sort((a, b) => a - b);
+}
 
 function createPlayer(nickname, autoAnswer = true) {
   const socket = io(SERVER_URL);
@@ -20,8 +27,7 @@ function createPlayer(nickname, autoAnswer = true) {
     console.log(`🧠 [${nickname}] Q${index + 1}: ${questionText}`);
     if (autoAnswer) {
       setTimeout(() => {
-        const selected = Math.floor(Math.random() * options.length);
-        const selectedAnswers = [selected]; // ✅ гарантированно массив
+        const selectedAnswers = getRandomAnswers(options.length);
         console.log(`[DEBUG] ${nickname} selectedAnswers:`, selectedAnswers);
 
         socket.emit('sendAnswer', {
