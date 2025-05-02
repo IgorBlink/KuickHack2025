@@ -10,6 +10,7 @@ import GamePage from './components/GamePage/GamePage';
 import PlayQuizPage from './components/PlayQuizPage/PlayQuizPage';
 import ResultsPage from './components/ResultsPage/ResultsPage';
 import NotFoundPage from './components/NotFoundPage/NotFoundPage';
+import CreateQuizPage from './components/CreateQuizPage/CreateQuizPage';
 import ProtectedRouteWithRedirect from './components/ProtectedRoute/ProtectedRouteWithRedirect';
 import { AuthProvider } from './context/AuthContext';
 
@@ -34,6 +35,13 @@ function App() {
             <Route path="/quiz/:id" element={
               <ProtectedRouteWithRedirect>
                 <QuizPage />
+              </ProtectedRouteWithRedirect>
+            } />
+            
+            {/* Страница для создания квиза защищена */}
+            <Route path="/create-quiz" element={
+              <ProtectedRouteWithRedirect>
+                <CreateQuizPage />
               </ProtectedRouteWithRedirect>
             } />
             

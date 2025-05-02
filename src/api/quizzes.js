@@ -113,6 +113,46 @@ const quizzesAPI = {
   },
 
   /**
+   * Генерация квиза с помощью ИИ
+   * @param {string} topic - тема для генерации квиза
+   * @param {number} quantity - количество вопросов
+   * @returns {Promise} Promise с результатом запроса - сгенерированный квиз
+   */
+  generateQuizWithAI: async (topic, quantity) => {
+    try {
+      const response = await api.post('/quiz/ai', {
+        topic,
+        quantity: Number(quantity)
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  /**
+   * Генерация квиза с помощью ИИ на основе изображения
+   * @param {File} imageFile - файл изображения (контрольная работа, конспект и т.д.)
+   * @returns {Promise} Promise с результатом запроса - сгенерированный квиз
+   */
+  generateQuizFromImage: async (imageFile) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      const response = await api.post('/quiz/ai/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  /**
    * Создание лобби для квиза
    * @param {Object} quizData - данные квиза
    * @returns {Promise} Promise с результатом запроса
